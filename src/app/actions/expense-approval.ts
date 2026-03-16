@@ -46,7 +46,9 @@ export async function approveExpense(
 
   if (error) return { error: error.message }
 
+  const { data: exp } = await adminClient().from('expenses').select('project_id').eq('id', expense_id).single<{ project_id: string }>()
   revalidatePath('/dashboard')
+  if (exp?.project_id) revalidatePath(`/projects/${exp.project_id}`)
   return { success: true }
 }
 
@@ -72,6 +74,8 @@ export async function rejectExpense(
 
   if (error) return { error: error.message }
 
+  const { data: exp } = await adminClient().from('expenses').select('project_id').eq('id', expense_id).single<{ project_id: string }>()
   revalidatePath('/dashboard')
+  if (exp?.project_id) revalidatePath(`/projects/${exp.project_id}`)
   return { success: true }
 }

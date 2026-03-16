@@ -18,12 +18,16 @@ type State = { error: string } | { success: boolean } | undefined
 export default function InviteUserDialog() {
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState('Staff')
+  const [toast, setToast] = useState<string | null>(null)
 
   const wrappedInvite = async (_prev: State, formData: FormData): Promise<State> => {
     formData.set('role', role)
     const result = await inviteUser(_prev, formData)
     if (result && 'success' in result && result.success) {
       setOpen(false)
+      setRole('Staff')
+      setToast('✓ 邀请邮件已发送')
+      setTimeout(() => setToast(null), 4000)
     }
     return result
   }
@@ -31,7 +35,16 @@ export default function InviteUserDialog() {
   const [state, formAction, pending] = useActionState(wrappedInvite, undefined)
 
   if (!open) {
-    return <Button onClick={() => setOpen(true)}>邀请新用户</Button>
+    return (
+      <>
+        {toast && (
+          <div className="fixed top-4 right-4 z-50 bg-[#3A7D44] text-white text-sm px-4 py-2.5 rounded-lg shadow-lg font-mono">
+            {toast}
+          </div>
+        )}
+        <Button onClick={() => setOpen(true)}>邀请新用户</Button>
+      </>
+    )
   }
 
   return (

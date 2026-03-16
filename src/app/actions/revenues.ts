@@ -28,9 +28,13 @@ export async function addRevenue(
   const amount = parseFloat(formData.get('amount') as string)
   const issue_date = formData.get('issue_date') as string
   const status = (formData.get('status') as string) || 'Unpaid'
+  const received_date = (formData.get('received_date') as string) || null
 
   if (!description || !issue_date || isNaN(amount) || amount <= 0) {
     return { error: '请填写所有必填字段' }
+  }
+  if (status === 'Paid' && !received_date) {
+    return { error: '状态为已收款时，请填写收款日期' }
   }
 
   const { error } = await adminClient().from('revenues').insert({
@@ -40,6 +44,7 @@ export async function addRevenue(
     amount,
     issue_date,
     status,
+    received_date,
   })
 
   if (error) return { error: error.message }

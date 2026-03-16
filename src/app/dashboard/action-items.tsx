@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import Link from 'next/link'
 
 export interface PendingProject {
   id: string
@@ -43,8 +44,8 @@ function ApproveButton({ project, onDone }: { project: PendingProject; onDone: (
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await approveProject(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast(`已批准 ${result.projectCode}`)
-      setTimeout(() => { setToast(null); onDone(); router.refresh() }, 2500)
+      setToast(`✓ 已批准 · 项目代码：${result.projectCode}`)
+      setTimeout(() => { setToast(null); onDone(); router.refresh() }, 4000)
     }
     return result
   }
@@ -54,7 +55,7 @@ function ApproveButton({ project, onDone }: { project: PendingProject; onDone: (
   return (
     <div className="relative">
       {toast && (
-        <div className="absolute -top-9 right-0 bg-green-600 text-white text-xs px-2.5 py-1 rounded shadow-lg whitespace-nowrap z-10">
+        <div className="absolute -top-10 right-0 bg-green-700 text-white text-xs px-3 py-1.5 rounded-md shadow-lg whitespace-nowrap z-10 font-mono">
           {toast}
         </div>
       )}
@@ -155,7 +156,7 @@ export default function ActionItems({ projects: initial }: Props) {
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                 {p.brand_name}
               </span>
-              <p className="font-medium text-sm text-gray-900 truncate mt-0.5">{p.name}</p>
+              <Link href={`/projects/${p.id}`} className="font-medium text-sm text-gray-900 truncate mt-0.5 hover:text-[#2A4A6B] hover:underline block">{p.name}</Link>
               <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
                 <span>预估 <span className="font-medium text-gray-700">{formatCurrency(p.estimated_revenue)}</span></span>
                 <span>·</span>

@@ -36,6 +36,7 @@ export default function NewProjectDialog({ brands }: Props) {
   const [open, setOpen] = useState(false)
   const [brandId, setBrandId] = useState('')
   const [type, setType] = useState('')
+  const [toast, setToast] = useState<string | null>(null)
   const router = useRouter()
 
   const wrappedCreate = async (_prev: State, formData: FormData): Promise<State> => {
@@ -46,7 +47,8 @@ export default function NewProjectDialog({ brands }: Props) {
       setOpen(false)
       setBrandId('')
       setType('')
-      router.refresh()
+      setToast('✓ 项目申请已提交，等待 Controller 审批')
+      setTimeout(() => { setToast(null); router.refresh() }, 4000)
     }
     return result
   }
@@ -59,6 +61,11 @@ export default function NewProjectDialog({ brands }: Props) {
 
   return (
     <>
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-[#3A7D44] text-white text-sm px-4 py-2.5 rounded-lg shadow-lg font-mono">
+          {toast}
+        </div>
+      )}
       <Button onClick={handleOpen} size="sm">+ 新项目申请</Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
