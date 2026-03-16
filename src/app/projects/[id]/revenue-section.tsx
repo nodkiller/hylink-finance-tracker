@@ -56,6 +56,7 @@ export default function RevenueSection({ projectId, revenues }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('Unpaid')
+  const [issueDate, setIssueDate] = useState('')
 
   const wrappedAdd = async (_prev: State, formData: FormData): Promise<State> => {
     formData.set('project_id', projectId)
@@ -160,7 +161,12 @@ export default function RevenueSection({ projectId, revenues }: Props) {
 
             <div className="space-y-1.5">
               <Label htmlFor="rev-date">开票日期 <span className="text-red-500">*</span></Label>
-              <Input id="rev-date" name="issue_date" type="date" required />
+              <Input id="rev-date" name="issue_date" type="date" required onChange={e => setIssueDate(e.target.value)} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="rev-received">收款日期</Label>
+              <Input id="rev-received" name="received_date" type="date" min={issueDate || undefined} />
             </div>
 
             <div className="space-y-1.5">

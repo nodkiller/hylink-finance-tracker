@@ -41,8 +41,7 @@ export async function createExpense(
   const db = adminClient()
 
   // Upload file to Supabase Storage
-  const ext = file.name.split('.').pop() ?? 'bin'
-  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
 
   // Get project code for the filename prefix
   const { data: proj } = await db
@@ -52,7 +51,8 @@ export async function createExpense(
     .single<{ project_code: string | null }>()
 
   const prefix = proj?.project_code ?? project_id
-  const storagePath = `${prefix}_${Date.now()}_${safeName}`
+  const uuid = crypto.randomUUID()
+  const storagePath = `${prefix}_${uuid}.${ext}`
 
   const fileBuffer = await file.arrayBuffer()
   const { data: uploadData, error: uploadError } = await db.storage
