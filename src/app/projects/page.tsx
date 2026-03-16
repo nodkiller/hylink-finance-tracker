@@ -12,7 +12,7 @@ export default async function ProjectsPage() {
   // Fetch all projects with brand name
   const { data: projects } = await db
     .from('projects')
-    .select('id, project_code, name, type, status, estimated_revenue, brand_id, brands(name)')
+    .select('id, project_code, name, type, status, estimated_revenue, brand_id, created_at, brands(name)')
     .order('created_at', { ascending: false })
 
   // Fetch revenue totals per project
@@ -45,6 +45,7 @@ export default async function ProjectsPage() {
     estimated_revenue: p.estimated_revenue,
     total_revenue: revenueMap.get(p.id) ?? 0,
     total_expenses: expenseMap.get(p.id) ?? 0,
+    created_at: p.created_at,
   }))
 
   const brands = Array.from(new Set(rows.map(r => r.brand_name))).sort()

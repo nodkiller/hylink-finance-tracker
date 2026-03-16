@@ -21,6 +21,7 @@ export interface ProjectRow {
   estimated_revenue: number | null
   total_revenue: number
   total_expenses: number
+  created_at: string
 }
 
 interface Props {
@@ -74,24 +75,38 @@ export default function ProjectsTable({ projects, brands }: Props) {
   const router = useRouter()
   const [brandFilter, setBrandFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [monthFilter, setMonthFilter] = useState('all')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   const allStatuses = useMemo(() => {
     const s = new Set(projects.map(p => p.status))
     return Array.from(s).sort()
   }, [projects])
 
+  // Build sorted list of unique year-months from created_at
+  const allMonths = useMemo(() => {
+    const months = new Set(projects.map(p => p.created_at.slice(0, 7)))
+    return Array.from(months).sort().reverse()
+  }, [projects])
+
   const filtered = useMemo(() => {
     return projects.filter(p => {
       if (brandFilter !== 'all' && p.brand_name !== brandFilter) return false
       if (statusFilter !== 'all' && p.status !== statusFilter) return false
+      if (monthFilter !== 'all' && p.created_at.slice(0, 7) !== monthFilter) return false
+      if (dateFrom && p.created_at.slice(0, 10) < dateFrom) return false
+      if (dateTo && p.created_at.slice(0, 10) > dateTo) return false
       return true
     })
-  }, [projects, brandFilter, statusFilter])
+  }, [projects, brandFilter, statusFilter, monthFilter, dateFrom, dateTo])
+
+  const hasDateFilter = dateFrom || dateTo || monthFilter !== 'all'
 
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Select value={brandFilter} onValueChange={(v) => v && setBrandFilter(v)}>
           <SelectTrigger className="w-36 h-8 text-sm">
             <SelectValue placeholder="品牌" />
@@ -111,6 +126,45 @@ export default function ProjectsTable({ projects, brands }: Props) {
             {allStatuses.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
+
+        <Select value={monthFilter} onValueChange={(v) => { if (v) { setMonthFilter(v); setDateFrom(''); setDateTo('') } }}>
+          <SelectTrigger className="w-36 h-8 text-sm">
+            <SelectValue placeholder="月份" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部月份</SelectItem>
+            {allMonths.map(m => (
+              <SelectItem key={m} value={m}>
+                {m.replace('-', ' 年 ') + ' 月'}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="flex items-center gap-1.5">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => { setDateFrom(e.target.value); setMonthFilter('all') }}
+            className="h-8 text-sm border border-gray-200 rounded-md px-2 text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#2A4A6B]/40"
+          />
+          <span className="text-gray-400 text-xs">—</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={e => { setDateTo(e.target.value); setMonthFilter('all') }}
+            className="h-8 text-sm border border-gray-200 rounded-md px-2 text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#2A4A6B]/40"
+          />
+          {hasDateFilter && (
+            <button
+              onClick={() => { setMonthFilter('all'); setDateFrom(''); setDateTo('') }}
+              className="text-xs text-gray-400 hover:text-gray-600 px-1"
+            >
+              ✕
+            </button>
+          )}
+        </div>
 
         <div className="flex items-center gap-3 ml-auto">
           <span className="text-sm text-gray-400">共 {filtered.length} 个项目</span>
