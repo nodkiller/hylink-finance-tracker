@@ -52,7 +52,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   const [{ data: project }, { data: revenues }, { data: expensesRaw }] = await Promise.all([
     db
       .from('projects')
-      .select('*, brands(name), profiles(full_name)')
+      .select('*, brands(name)')
       .eq('id', id)
       .single(),
     db
@@ -62,7 +62,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       .order('issue_date', { ascending: false }),
     db
       .from('expenses')
-      .select('*, profiles(full_name)')
+      .select('*')
       .eq('project_id', id)
       .order('created_at', { ascending: false }),
   ])
@@ -70,8 +70,22 @@ export default async function ProjectDetailPage({ params }: Props) {
   if (!project) notFound()
 
   const p = project as any
-  const brandName: string  = p.brands?.name ?? '—'
-  const creatorName: string = p.profiles?.full_name ?? '—'
+
+  // Fetch creator name separately (projects.created_by → auth.users, not profiles)
+  const { data: creatorProfile } = p.created_by
+    ? await db.from('profiles').select('full_name').eq('id', p.created_by).single<{ full_name: string }>()
+    : { data: null }
+
+  // Fetch approver names for expenses
+  const approverIds = [...new Set((expensesRaw ?? []).map((e: any) => e.approver_id).filter(Boolean))] as string[]
+  const approverMap = new Map<string, string>()
+  if (approverIds.length > 0) {
+    const { data: approvers } = await db.from('profiles').select('id, full_name').in('id', approverIds)
+    for (const a of approvers ?? []) approverMap.set((a as any).id, (a as any).full_name ?? '—')
+  }
+
+  const brandName: string   = p.brands?.name ?? '—'
+  const creatorName: string = creatorProfile?.full_name ?? '—'
   const isActive = p.status === 'Active'
 
   // Compute totals for reconcile panel
@@ -177,7 +191,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             amount: e.amount,
             status: e.status,
             attachment_url: e.attachment_url,
-            approver_name: e.profiles?.full_name ?? null,
+            approver_name: e.approver_id ? approverMap.get(e.approver_id) ?? null : null,
             rejection_reason: e.rejection_reason ?? null,
             payment_date: e.payment_date,
           }))}
