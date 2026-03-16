@@ -178,6 +178,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         {/* Revenue Section */}
         <RevenueSection
           projectId={id}
+          canEdit={canEdit}
           revenues={(revenues ?? []).map((r: any) => ({
             id: r.id,
             description: r.description,

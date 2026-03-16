@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { addRevenue } from '@/app/actions/revenues'
+import EditRevenueDialog from './edit-revenue-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,6 +34,7 @@ export interface RevenueRecord {
 interface Props {
   projectId: string
   revenues: RevenueRecord[]
+  canEdit?: boolean
 }
 
 type State = { error: string } | { success: boolean } | undefined
@@ -52,7 +54,7 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
-export default function RevenueSection({ projectId, revenues }: Props) {
+export default function RevenueSection({ projectId, revenues, canEdit }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('Unpaid')
@@ -116,6 +118,7 @@ export default function RevenueSection({ projectId, revenues }: Props) {
               <th className="text-left px-4 py-3 font-medium text-gray-500 w-28">开票日期</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 w-28">收款日期</th>
               <th className="text-left px-4 py-3 font-medium text-gray-500 w-24">状态</th>
+              {canEdit && <th className="text-left px-4 py-3 font-medium text-gray-500 w-16">操作</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -131,6 +134,19 @@ export default function RevenueSection({ projectId, revenues }: Props) {
                     {r.status}
                   </span>
                 </td>
+                {canEdit && (
+                  <td className="px-4 py-3">
+                    <EditRevenueDialog revenue={{
+                      id: r.id,
+                      description: r.description,
+                      invoice_number: r.invoice_number,
+                      amount: r.amount,
+                      status: r.status,
+                      issue_date: r.issue_date,
+                      received_date: r.received_date,
+                    }} />
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
