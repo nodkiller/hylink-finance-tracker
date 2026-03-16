@@ -1,4 +1,5 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/server'
 import AppHeader from '@/components/app-header'
 import ActionItems, { type PendingProject } from './action-items'
 import PendingExpenses, { type PendingExpense } from './pending-expenses'
@@ -35,6 +36,23 @@ function getLast6Months(): { label: string; year: number; month: number }[] {
 }
 
 export default async function DashboardPage() {
+  // Get current user role to determine which pending expenses to show
+  const authClient = await createClient()
+  const { data: { user } } = await authClient.auth.getUser()
+  const { data: profile } = user
+    ? await authClient.from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
+    : { data: null }
+  const role = profile?.role ?? ''
+  const isSuperAdmin = role === 'Super Admin'
+  const isAdmin = role === 'Admin'
+
+  // Expense statuses to surface based on role
+  const pendingStatuses = isSuperAdmin
+    ? ['Pending Approval', 'Pending Super Approval']
+    : isAdmin
+    ? ['Pending Approval']
+    : []
+
   const db = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -55,12 +73,14 @@ export default async function DashboardPage() {
       .eq('status', 'Pending Approval')
       .order('created_at', { ascending: true }),
 
-    // Pending expenses for action items
-    db
-      .from('expenses')
-      .select('id, payee, description, amount, attachment_url, created_at, projects(project_code, name)')
-      .eq('status', 'Pending Approval')
-      .order('created_at', { ascending: true }),
+    // Pending expenses — filtered by role
+    pendingStatuses.length > 0
+      ? db
+          .from('expenses')
+          .select('id, payee, description, amount, attachment_url, created_at, status, projects(project_code, name)')
+          .in('status', pendingStatuses)
+          .order('created_at', { ascending: true })
+      : Promise.resolve({ data: [] as any[], error: null }),
 
     // All revenues for KPI + chart
     db
@@ -93,6 +113,7 @@ export default async function DashboardPage() {
     payee: e.payee,
     description: e.description,
     amount: e.amount,
+    status: e.status,
     attachment_url: e.attachment_url,
   }))
 
@@ -329,7 +350,7 @@ export default async function DashboardPage() {
                   </span>
                 )}
               </div>
-              <PendingExpenses expenses={pendingExpenses} />
+              <PendingExpenses expenses={pendingExpenses} approverRole={role} />
             </div>
           </div>
         </div>

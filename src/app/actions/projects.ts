@@ -6,6 +6,25 @@ import { revalidatePath } from 'next/cache'
 
 type ActionState = { error: string } | { success: boolean } | undefined
 
+const MANAGE_ROLES = ['Controller', 'Admin', 'Super Admin']
+
+function adminClient() {
+  return createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+}
+
+async function assertManageRole() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await supabase
+    .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
+  return profile && MANAGE_ROLES.includes(profile.role) ? profile.role : null
+}
+
 export async function createProject(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -58,7 +77,7 @@ export async function completeProject(
     .eq('id', user.id)
     .single<{ role: string }>()
 
-  if (profile?.role !== 'Controller') return { error: '无权限' }
+  if (!profile || !MANAGE_ROLES.includes(profile.role)) return { error: '无权限' }
 
   const adminClient = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -89,6 +108,61 @@ export async function completeProject(
   return { success: true }
 }
 
+export async function updateProject(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const role = await assertManageRole()
+  if (!role) return { error: '无权限' }
+
+  const project_id = formData.get('project_id') as string
+  const name = (formData.get('name') as string).trim()
+  const type = formData.get('type') as string
+  const brand_id = formData.get('brand_id') as string
+  const estimated_revenue = parseFloat(formData.get('estimated_revenue') as string)
+  const project_code = (formData.get('project_code') as string)?.trim() || null
+  const notes = (formData.get('notes') as string)?.trim() || null
+
+  if (!name || !type || !brand_id || isNaN(estimated_revenue)) {
+    return { error: '请填写所有必填字段' }
+  }
+
+  const db = adminClient()
+  const { error } = await db
+    .from('projects')
+    .update({ name, type, brand_id, estimated_revenue, project_code, notes })
+    .eq('id', project_id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/projects/${project_id}`)
+  revalidatePath('/projects')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
+export async function deleteProject(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const role = await assertManageRole()
+  if (!role) return { error: '无权限' }
+
+  const project_id = formData.get('project_id') as string
+  const db = adminClient()
+
+  // Delete child records before project (in case FK is not CASCADE)
+  await db.from('revenues').delete().eq('project_id', project_id)
+  await db.from('expenses').delete().eq('project_id', project_id)
+
+  const { error } = await db.from('projects').delete().eq('id', project_id)
+  if (error) return { error: error.message }
+
+  revalidatePath('/projects')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function reconcileProject(
   _prev: ActionState,
   formData: FormData
@@ -103,7 +177,7 @@ export async function reconcileProject(
     .eq('id', user.id)
     .single<{ role: string }>()
 
-  if (profile?.role !== 'Controller') return { error: '无权限' }
+  if (!profile || !MANAGE_ROLES.includes(profile.role)) return { error: '无权限' }
 
   const adminClient = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

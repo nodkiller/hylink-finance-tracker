@@ -26,7 +26,8 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
     .eq('id', user.id)
     .single<{ role: 'Staff' | 'Controller' }>()
 
-  if (profile?.role === 'Controller') {
+  const dashboardRoles = ['Controller', 'Admin', 'Super Admin']
+  if (dashboardRoles.includes(profile?.role ?? '')) {
     redirect('/dashboard')
   } else {
     redirect('/projects')

@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition, useActionState } from 'react'
+import EditExpenseDialog from './edit-expense-dialog'
 import { useRouter } from 'next/navigation'
 import { createExpense, confirmPayment } from '@/app/actions/expenses'
 import { Button } from '@/components/ui/button'
@@ -30,14 +31,16 @@ export interface ExpenseRecord {
 interface Props {
   projectId: string
   expenses: ExpenseRecord[]
-  isController: boolean
+  canSubmit: boolean
+  canConfirmPayment: boolean
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  'Pending Approval': 'bg-[#D48E00]/10 text-[#D48E00] border-[#D48E00]/25',
-  'Approved':         'bg-[#2A4A6B]/10 text-[#2A4A6B] border-[#2A4A6B]/25',
-  'Rejected':         'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/25',
-  'Paid':             'bg-[#3A7D44]/10 text-[#3A7D44] border-[#3A7D44]/25',
+  'Pending Approval':       'bg-[#D48E00]/10 text-[#D48E00] border-[#D48E00]/25',
+  'Pending Super Approval': 'bg-purple-50 text-purple-700 border-purple-200',
+  'Approved':               'bg-[#2A4A6B]/10 text-[#2A4A6B] border-[#2A4A6B]/25',
+  'Rejected':               'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/25',
+  'Paid':                   'bg-[#3A7D44]/10 text-[#3A7D44] border-[#3A7D44]/25',
 }
 
 function fmt(n: number) {
@@ -113,7 +116,7 @@ function ConfirmPaymentButton({ expense }: { expense: ExpenseRecord }) {
   )
 }
 
-export default function ExpenseSection({ projectId, expenses, isController }: Props) {
+export default function ExpenseSection({ projectId, expenses, canSubmit, canConfirmPayment }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -122,7 +125,8 @@ export default function ExpenseSection({ projectId, expenses, isController }: Pr
   const formRef = useRef<HTMLFormElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
-  const showAmountWarning = parseFloat(amountValue) > 5000
+  const parsedAmount = parseFloat(amountValue)
+  const showAmountWarning = parsedAmount > 1000
 
   // Summary
   const totalAmount   = expenses.reduce((s, e) => s + Number(e.amount), 0)
@@ -165,9 +169,11 @@ export default function ExpenseSection({ projectId, expenses, isController }: Pr
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 className="font-semibold text-gray-900">支出（付款请求）</h2>
-        <Button size="sm" onClick={handleOpen} className="h-7 text-xs px-3">
-          + 发起付款请求
-        </Button>
+        {canSubmit && (
+          <Button size="sm" onClick={handleOpen} className="h-7 text-xs px-3">
+            + 发起付款请求
+          </Button>
+        )}
       </div>
 
       {/* Summary cards */}
@@ -224,6 +230,18 @@ export default function ExpenseSection({ projectId, expenses, isController }: Pr
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-1">
+                    {canSubmit && (
+                      <EditExpenseDialog expense={{
+                        id: e.id,
+                        payee: e.payee,
+                        description: e.description,
+                        invoice_number: e.invoice_number,
+                        amount: e.amount,
+                        status: e.status,
+                        attachment_url: e.attachment_url,
+                        payment_date: e.payment_date,
+                      }} />
+                    )}
                     <a
                       href={e.attachment_url}
                       target="_blank"
@@ -232,7 +250,7 @@ export default function ExpenseSection({ projectId, expenses, isController }: Pr
                     >
                       查看附件
                     </a>
-                    {isController && e.status === 'Approved' && (
+                    {canConfirmPayment && e.status === 'Approved' && (
                       <ConfirmPaymentButton expense={e} />
                     )}
                     {e.status === 'Paid' && e.payment_date && (
@@ -335,7 +353,9 @@ export default function ExpenseSection({ projectId, expenses, isController }: Pr
               <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2.5">
                 <span className="text-amber-500 mt-0.5">⚠️</span>
                 <p className="text-xs text-amber-700 leading-relaxed">
-                  此笔付款金额超过 $5,000，提交后将自动发送给 Controller 审批，审批通过后方可付款。
+                  {parsedAmount > 2000
+                    ? '此笔付款金额超过审批上限，提交后需超级管理员审批后方可付款。'
+                    : '此笔付款金额超过自动审批额度，提交后需管理员审批后方可付款。'}
                 </p>
               </div>
             )}

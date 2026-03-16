@@ -5,6 +5,8 @@ import AppHeader from '@/components/app-header'
 import RevenueSection from './revenue-section'
 import ExpenseSection from './expense-section'
 import ReconcilePanel from './reconcile-panel'
+import EditProjectDialog from './edit-project-dialog'
+import DeleteProjectButton from './delete-project-button'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -35,13 +37,15 @@ function fmt(n: number | null) {
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params
 
-  // Get current user role
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   const { data: profile } = user
     ? await supabase.from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
     : { data: null }
-  const isController = profile?.role === 'Controller'
+  const userRole = profile?.role ?? ''
+  const canSubmit = ['Controller', 'Admin', 'Super Admin'].includes(userRole)
+  const canConfirmPayment = canSubmit
+  const canEdit = canSubmit
 
   const db = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -49,34 +53,26 @@ export default async function ProjectDetailPage({ params }: Props) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const [{ data: project }, { data: revenues }, { data: expensesRaw }] = await Promise.all([
-    db
-      .from('projects')
-      .select('*, brands(name)')
-      .eq('id', id)
-      .single(),
-    db
-      .from('revenues')
-      .select('*')
-      .eq('project_id', id)
-      .order('issue_date', { ascending: false }),
-    db
-      .from('expenses')
-      .select('*')
-      .eq('project_id', id)
-      .order('created_at', { ascending: false }),
+  const [
+    { data: project },
+    { data: revenues },
+    { data: expensesRaw },
+    { data: brands },
+  ] = await Promise.all([
+    db.from('projects').select('*, brands(name, id)').eq('id', id).single(),
+    db.from('revenues').select('*').eq('project_id', id).order('issue_date', { ascending: false }),
+    db.from('expenses').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+    db.from('brands').select('id, name').order('name'),
   ])
 
   if (!project) notFound()
 
   const p = project as any
 
-  // Fetch creator name separately (projects.created_by → auth.users, not profiles)
   const { data: creatorProfile } = p.created_by
     ? await db.from('profiles').select('full_name').eq('id', p.created_by).single<{ full_name: string }>()
     : { data: null }
 
-  // Fetch approver names for expenses
   const approverIds = [...new Set((expensesRaw ?? []).map((e: any) => e.approver_id).filter(Boolean))] as string[]
   const approverMap = new Map<string, string>()
   if (approverIds.length > 0) {
@@ -87,8 +83,8 @@ export default async function ProjectDetailPage({ params }: Props) {
   const brandName: string   = p.brands?.name ?? '—'
   const creatorName: string = creatorProfile?.full_name ?? '—'
   const isActive = p.status === 'Active'
+  const hasRecords = (revenues?.length ?? 0) > 0 || (expensesRaw?.length ?? 0) > 0
 
-  // Compute totals for reconcile panel
   const allRevenues = revenues ?? []
   const allExpenses = expensesRaw ?? []
   const totalRevenue = allRevenues.reduce((s: number, r: any) => s + Number(r.amount), 0)
@@ -109,25 +105,50 @@ export default async function ProjectDetailPage({ params }: Props) {
         </div>
 
         {/* Project Info Card */}
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 relative">
-          {isActive && (
-            <div className="absolute top-4 right-5">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">
-                <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
-                Active
-              </span>
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+          {/* Header row: project code + action buttons */}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-xs text-gray-400 mb-1">项目代码</p>
+              {p.project_code ? (
+                <p className="text-2xl font-bold font-mono text-gray-900 tracking-wide">
+                  {p.project_code}
+                </p>
+              ) : (
+                <p className="text-lg font-mono text-gray-300 italic">待审批分配</p>
+              )}
             </div>
-          )}
 
-          <div className="mb-4">
-            <p className="text-xs text-gray-400 mb-1">项目代码</p>
-            {p.project_code ? (
-              <p className="text-2xl font-bold font-mono text-gray-900 tracking-wide">
-                {p.project_code}
-              </p>
-            ) : (
-              <p className="text-lg font-mono text-gray-300 italic">待审批分配</p>
-            )}
+            <div className="flex items-center gap-2">
+              {isActive && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-500 text-white">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
+                  Active
+                </span>
+              )}
+              {canEdit && (
+                <>
+                  <EditProjectDialog
+                    project={{
+                      id: p.id,
+                      name: p.name,
+                      type: p.type,
+                      brand_id: p.brand_id,
+                      brand_name: brandName,
+                      estimated_revenue: p.estimated_revenue,
+                      project_code: p.project_code,
+                      notes: p.notes,
+                    }}
+                    brands={brands ?? []}
+                  />
+                  <DeleteProjectButton
+                    projectId={p.id}
+                    projectName={p.name}
+                    hasRecords={hasRecords}
+                  />
+                </>
+              )}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 pt-4 border-t border-gray-50">
@@ -168,8 +189,8 @@ export default async function ProjectDetailPage({ params }: Props) {
           }))}
         />
 
-        {/* Reconcile Panel — Controllers only */}
-        {isController && (
+        {/* Reconcile Panel — Controller/Admin/Super Admin */}
+        {canEdit && (
           <ReconcilePanel
             projectId={id}
             projectStatus={p.status}
@@ -182,7 +203,8 @@ export default async function ProjectDetailPage({ params }: Props) {
         {/* Expense Section */}
         <ExpenseSection
           projectId={id}
-          isController={isController}
+          canSubmit={canSubmit}
+          canConfirmPayment={canConfirmPayment}
           expenses={(expensesRaw ?? []).map((e: any) => ({
             id: e.id,
             payee: e.payee,
@@ -200,4 +222,3 @@ export default async function ProjectDetailPage({ params }: Props) {
     </div>
   )
 }
-

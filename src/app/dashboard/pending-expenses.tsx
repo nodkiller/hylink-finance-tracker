@@ -20,6 +20,7 @@ export interface PendingExpense {
   payee: string
   description: string
   amount: number
+  status: string
   attachment_url: string
 }
 
@@ -150,9 +151,10 @@ function RejectExpenseButton({
 
 interface Props {
   expenses: PendingExpense[]
+  approverRole?: string
 }
 
-export default function PendingExpenses({ expenses: initial }: Props) {
+export default function PendingExpenses({ expenses: initial, approverRole }: Props) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const visible = initial.filter(e => !dismissed.has(e.id))
   const dismiss = (id: string) => setDismissed(prev => new Set([...prev, id]))
@@ -174,6 +176,11 @@ export default function PendingExpenses({ expenses: initial }: Props) {
                     <span className="font-mono text-xs text-gray-400">
                       {e.project_code ?? e.project_name}
                     </span>
+                    {e.status === 'Pending Super Approval' && (
+                      <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">
+                        超级管理员
+                      </span>
+                    )}
                   </div>
                   <p className="font-medium text-sm text-gray-900 truncate">{e.payee}</p>
                   <p className="text-xs text-gray-500 mt-0.5 truncate">{e.description}</p>
