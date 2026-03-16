@@ -14,7 +14,7 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: error.message }
+    return { error: '邮箱或密码错误' }
   }
 
   const { data: { user } } = await supabase.auth.getUser()

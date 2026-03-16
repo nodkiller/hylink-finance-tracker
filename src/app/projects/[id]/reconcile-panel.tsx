@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useRouter } from 'next/navigation'
-import { reconcileProject } from '@/app/actions/projects'
+import { reconcileProject, completeProject } from '@/app/actions/projects'
 import { Button } from '@/components/ui/button'
 
 interface Props {
@@ -30,17 +30,23 @@ export default function ReconcilePanel({
   const router = useRouter()
   const profit = totalRevenue - totalExpenses
   const isReconciled = projectStatus === 'Reconciled'
-  const canReconcile = projectStatus === 'Completed'
+  const isCompleted = projectStatus === 'Completed'
+  const isActive = projectStatus === 'Active'
 
-  const action = async (_prev: State, formData: FormData): Promise<State> => {
-    const result = await reconcileProject(_prev, formData)
-    if (result && 'success' in result && result.success) {
-      router.refresh()
-    }
+  const completeAction = async (_prev: State, formData: FormData): Promise<State> => {
+    const result = await completeProject(_prev, formData)
+    if (result && 'success' in result && result.success) router.refresh()
     return result
   }
 
-  const [state, formAction, pending] = useActionState(action, undefined)
+  const reconcileAction = async (_prev: State, formData: FormData): Promise<State> => {
+    const result = await reconcileProject(_prev, formData)
+    if (result && 'success' in result && result.success) router.refresh()
+    return result
+  }
+
+  const [completeState, completeFormAction, completePending] = useActionState(completeAction, undefined)
+  const [state, formAction, pending] = useActionState(reconcileAction, undefined)
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
@@ -87,34 +93,58 @@ export default function ReconcilePanel({
         </div>
       </div>
 
-      {/* Reconcile button */}
-      <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between">
-        <div>
-          {!canReconcile && !isReconciled && (
-            <p className="text-xs text-gray-400">项目状态为 Completed 后才可对账</p>
-          )}
-          {state && 'error' in state && (
-            <p className="text-xs text-red-600">{state.error}</p>
-          )}
+      {/* Action buttons */}
+      <div className="px-5 py-4 border-t border-gray-100 space-y-3">
+        {/* Error messages */}
+        {completeState && 'error' in completeState && (
+          <p className="text-xs text-red-600">{completeState.error}</p>
+        )}
+        {state && 'error' in state && (
+          <p className="text-xs text-red-600">{state.error}</p>
+        )}
+
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-400">
+            {isReconciled ? '此项目已完成对账' : isCompleted ? '可执行对账操作' : isActive ? '完成项目后才可对账' : ''}
+          </p>
+          <div className="flex items-center gap-2">
+            {/* Step 1: Active → Completed */}
+            {isActive && (
+              <form action={completeFormAction}>
+                <input type="hidden" name="project_id" value={projectId} />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={completePending}
+                  variant="outline"
+                  className="text-[#2A4A6B] border-[#2A4A6B]/30 hover:bg-[#2A4A6B]/5"
+                >
+                  {completePending ? '处理中...' : '标记为已完成'}
+                </Button>
+              </form>
+            )}
+
+            {/* Step 2: Completed → Reconciled */}
+            <form action={formAction}>
+              <input type="hidden" name="project_id" value={projectId} />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!isCompleted || pending || isReconciled}
+                className={
+                  isReconciled
+                    ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                    : isCompleted
+                    ? 'bg-[#2A4A6B] hover:bg-[#1a3a5c] text-white'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                }
+                variant="ghost"
+              >
+                {isReconciled ? '已对账' : pending ? '处理中...' : '标记为已对账'}
+              </Button>
+            </form>
+          </div>
         </div>
-        <form action={formAction}>
-          <input type="hidden" name="project_id" value={projectId} />
-          <Button
-            type="submit"
-            size="sm"
-            disabled={!canReconcile || pending || isReconciled}
-            className={
-              isReconciled
-                ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                : canReconcile
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-            }
-            variant="ghost"
-          >
-            {isReconciled ? '已对账' : pending ? '处理中...' : '标记为已对账'}
-          </Button>
-        </form>
       </div>
     </div>
   )

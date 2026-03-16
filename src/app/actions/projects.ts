@@ -44,6 +44,51 @@ export async function createProject(_prev: ActionState, formData: FormData): Pro
   return { success: true }
 }
 
+export async function completeProject(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: '未登录' }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single<{ role: string }>()
+
+  if (profile?.role !== 'Controller') return { error: '无权限' }
+
+  const adminClient = createAdmin(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  const project_id = formData.get('project_id') as string
+
+  const { data: proj } = await adminClient
+    .from('projects')
+    .select('status')
+    .eq('id', project_id)
+    .single<{ status: string }>()
+
+  if (proj?.status !== 'Active') return { error: '只有进行中的项目才能标记为已完成' }
+
+  const { error } = await adminClient
+    .from('projects')
+    .update({ status: 'Completed' })
+    .eq('id', project_id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/projects/${project_id}`)
+  revalidatePath('/projects')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function reconcileProject(
   _prev: ActionState,
   formData: FormData

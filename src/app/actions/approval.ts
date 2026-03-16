@@ -97,5 +97,6 @@ export async function rejectProject(
   if (error) return { error: error.message }
 
   revalidatePath('/dashboard')
+  revalidatePath('/projects')
   return { success: true }
 }
