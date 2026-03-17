@@ -120,7 +120,7 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
   const filteredExpenses = expenses.filter(e =>
     ['Approved', 'Paid'].includes(e.status) &&
     e.created_at >= rangeStart &&
-    (brandFilter === 'all' || (e as any).brand_name === brandFilter)
+    (brandFilter === 'all' || e.brand_name === brandFilter)
   )
 
   const rows = useMemo(() => {
@@ -131,7 +131,7 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
         map[r.brand_name].revenue += Number(r.amount)
       }
       for (const e of filteredExpenses) {
-        const bn = (e as any).brand_name
+        const bn = e.brand_name
         if (!map[bn]) map[bn] = { revenue: 0, expenses: 0 }
         map[bn].expenses += Number(e.amount)
       }

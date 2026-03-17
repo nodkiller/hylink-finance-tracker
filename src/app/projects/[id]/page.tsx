@@ -15,6 +15,59 @@ interface Props {
   params: Promise<{ id: string }>
 }
 
+interface ProjectRow {
+  id: string
+  brand_id: string
+  created_by: string | null
+  name: string
+  type: string
+  status: string
+  estimated_revenue: number | null
+  project_code: string | null
+  notes: string | null
+  rejection_reason: string | null
+  created_at: string
+  brands: { id: string; name: string } | null
+}
+
+interface RevenueRow {
+  id: string
+  description: string | null
+  invoice_number: string | null
+  amount: number
+  status: string
+  issue_date: string
+  received_date: string | null
+  created_at: string
+}
+
+interface ExpenseRow {
+  id: string
+  payee: string
+  description: string
+  invoice_number: string
+  amount: number
+  status: string
+  attachment_url: string
+  approver_id: string | null
+  rejection_reason: string | null
+  payment_date: string | null
+  created_at: string
+}
+
+interface ApprovalRow {
+  id: string
+  action: 'approved' | 'rejected'
+  comment: string | null
+  approved_by: string | null
+  created_at: string
+}
+
+interface ApproverRow {
+  id: string
+  full_name: string | null
+}
+
 const STATUS_COLORS: Record<string, string> = {
   'Active':           'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
   'Pending Approval': 'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
@@ -65,35 +118,35 @@ export default async function ProjectDetailPage({ params }: Props) {
     { data: brands },
     { data: approvalsRaw },
   ] = await Promise.all([
-    db.from('projects').select('*, brands(name, id)').eq('id', id).single(),
-    db.from('revenues').select('*').eq('project_id', id).order('issue_date', { ascending: false }),
-    db.from('expenses').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+    db.from('projects').select('*, brands(name, id)').eq('id', id).single<ProjectRow>(),
+    db.from('revenues').select('*').eq('project_id', id).order('issue_date', { ascending: false }).returns<RevenueRow[]>(),
+    db.from('expenses').select('*').eq('project_id', id).order('created_at', { ascending: false }).returns<ExpenseRow[]>(),
     db.from('brands').select('id, name').order('name'),
-    db.from('project_approvals').select('*').eq('project_id', id).order('created_at', { ascending: false }),
+    db.from('project_approvals').select('*').eq('project_id', id).order('created_at', { ascending: false }).returns<ApprovalRow[]>(),
   ])
 
   if (!project) notFound()
 
-  const p = project as any
+  const p: ProjectRow = project
 
   const { data: creatorProfile } = p.created_by
     ? await db.from('profiles').select('full_name').eq('id', p.created_by).single<{ full_name: string }>()
     : { data: null }
 
-  const approverIds = [...new Set((expensesRaw ?? []).map((e: any) => e.approver_id).filter(Boolean))] as string[]
-  const approvalApproverIds = [...new Set((approvalsRaw ?? []).map((a: any) => a.approved_by).filter(Boolean))] as string[]
+  const approverIds = [...new Set((expensesRaw ?? []).map(e => e.approver_id).filter((x): x is string => x !== null))]
+  const approvalApproverIds = [...new Set((approvalsRaw ?? []).map(a => a.approved_by).filter((x): x is string => x !== null))]
   const allApproverIds = [...new Set([...approverIds, ...approvalApproverIds])]
   const approverMap = new Map<string, string>()
   if (allApproverIds.length > 0) {
-    const { data: approvers } = await db.from('profiles').select('id, full_name').in('id', allApproverIds)
-    for (const a of approvers ?? []) approverMap.set((a as any).id, (a as any).full_name ?? '—')
+    const { data: approvers } = await db.from('profiles').select('id, full_name').in('id', allApproverIds).returns<ApproverRow[]>()
+    for (const a of approvers ?? []) approverMap.set(a.id, a.full_name ?? '—')
   }
 
-  const approvals: ApprovalRecord[] = (approvalsRaw ?? []).map((a: any) => ({
+  const approvals: ApprovalRecord[] = (approvalsRaw ?? []).map(a => ({
     id: a.id,
     action: a.action,
     comment: a.comment,
-    approver_name: approverMap.get(a.approved_by) ?? '—',
+    approver_name: approverMap.get(a.approved_by ?? '') ?? '—',
     created_at: a.created_at,
   }))
 
@@ -102,16 +155,16 @@ export default async function ProjectDetailPage({ params }: Props) {
   const isActive = p.status === 'Active'
   const hasRecords = (revenues?.length ?? 0) > 0 || (expensesRaw?.length ?? 0) > 0
 
-  const allRevenues = revenues ?? []
-  const allExpenses = expensesRaw ?? []
-  const totalRevenue = allRevenues.reduce((s: number, r: any) => s + Number(r.amount), 0)
+  const allRevenues: RevenueRow[] = revenues ?? []
+  const allExpenses: ExpenseRow[] = expensesRaw ?? []
+  const totalRevenue = allRevenues.reduce((s, r) => s + Number(r.amount), 0)
   const totalExpenses = allExpenses
-    .filter((e: any) => e.status === 'Approved' || e.status === 'Paid')
-    .reduce((s: number, e: any) => s + Number(e.amount), 0)
+    .filter(e => e.status === 'Approved' || e.status === 'Paid')
+    .reduce((s, e) => s + Number(e.amount), 0)
 
   const canReconcile = ['Controller', 'Super Admin'].includes(userRole)
-  const unpaidRevenueCount = allRevenues.filter((r: any) => r.status !== 'Paid').length
-  const pendingExpenseCount = allExpenses.filter((e: any) => !['Paid', 'Rejected'].includes(e.status)).length
+  const unpaidRevenueCount = allRevenues.filter(r => r.status !== 'Paid').length
+  const pendingExpenseCount = allExpenses.filter(e => !['Paid', 'Rejected'].includes(e.status)).length
 
   const profit = totalRevenue - totalExpenses
   const profitMargin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : null
@@ -128,16 +181,16 @@ export default async function ProjectDetailPage({ params }: Props) {
       color: 'blue',
     },
     // Project approvals
-    ...(approvalsRaw ?? []).map((a: any) => ({
+    ...(approvalsRaw ?? []).map(a => ({
       id: `approval-${a.id}`,
       date: a.created_at,
       type: a.action,
       title: a.action === 'approved' ? '项目已审批通过' : '项目已驳回',
-      subtitle: a.comment ?? `审批人：${approverMap.get(a.approved_by) ?? '—'}`,
+      subtitle: a.comment ?? `审批人：${approverMap.get(a.approved_by ?? '') ?? '—'}`,
       color: (a.action === 'approved' ? 'green' : 'red') as TimelineEvent['color'],
     })),
     // Revenues added
-    ...(revenues ?? []).map((r: any) => ({
+    ...(allRevenues).map(r => ({
       id: `revenue-${r.id}`,
       date: r.created_at,
       type: 'revenue',
@@ -146,7 +199,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       color: 'green' as const,
     })),
     // Expenses submitted
-    ...(expensesRaw ?? []).map((e: any) => ({
+    ...(allExpenses).map(e => ({
       id: `expense-${e.id}`,
       date: e.created_at,
       type: 'expense_submitted',
@@ -155,11 +208,11 @@ export default async function ProjectDetailPage({ params }: Props) {
       color: 'amber' as const,
     })),
     // Expenses paid
-    ...(expensesRaw ?? [])
-      .filter((e: any) => e.status === 'Paid' && e.payment_date)
-      .map((e: any) => ({
+    ...(allExpenses)
+      .filter(e => e.status === 'Paid' && e.payment_date)
+      .map(e => ({
         id: `paid-${e.id}`,
-        date: e.payment_date,
+        date: e.payment_date!,
         type: 'expense_paid',
         title: `付款完成：${e.payee}`,
         subtitle: `A$${Number(e.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
@@ -278,7 +331,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           projectId={id}
           canEdit={canEdit}
           isSuperAdmin={userRole === 'Super Admin'}
-          revenues={(revenues ?? []).map((r: any) => ({
+          revenues={allRevenues.map(r => ({
             id: r.id,
             description: r.description,
             invoice_number: r.invoice_number,
@@ -312,7 +365,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           canSubmit={canSubmit}
           canConfirmPayment={canConfirmPayment}
           canApprove={canApprove}
-          expenses={(expensesRaw ?? []).map((e: any) => ({
+          expenses={allExpenses.map(e => ({
             id: e.id,
             payee: e.payee,
             description: e.description,
