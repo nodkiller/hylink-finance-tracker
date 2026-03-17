@@ -70,7 +70,7 @@ export default async function SettingsPage() {
   }))
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title="审批设置" />
       <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">审批设置</h1>

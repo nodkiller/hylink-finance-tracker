@@ -221,7 +221,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   ]
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title={p.name} />
 
       <main className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">

@@ -58,7 +58,7 @@ export default async function AdminUsersPage() {
   const suspendedCount = users.filter(u => u.is_suspended).length
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title="用户管理" />
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">

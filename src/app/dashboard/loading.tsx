@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       {/* Header placeholder */}
       <div className="bg-white border-b border-gray-200 px-6 py-3 h-[53px]" />
 

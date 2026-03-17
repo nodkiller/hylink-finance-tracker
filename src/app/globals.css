@@ -129,14 +129,15 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-inter), var(--font-noto-sc), system-ui, sans-serif;
-    color: #1A202C;
-    background-color: #F7FAFC;
-  }
   html {
     @apply font-sans;
+    background-color: #F7FAFC;
+  }
+  body {
+    @apply text-foreground;
+    font-family: var(--font-inter), var(--font-noto-sc), system-ui, sans-serif;
+    color: #1A202C;
+    background-color: transparent;
   }
   /* Page fade-in — triggers on every navigation since <main> remounts */
   main {

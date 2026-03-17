@@ -1,6 +1,6 @@
 export default function ProjectsLoading() {
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <div className="bg-white border-b border-gray-200 px-6 py-3 h-[53px]" />
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4">
@@ -32,7 +32,7 @@ export default function ProjectsLoading() {
         {/* Table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Header */}
-          <div className="flex gap-4 px-4 py-3 border-b" style={{ backgroundColor: '#F7FAFC' }}>
+          <div className="flex gap-4 px-4 py-3 border-b">
             {[36, 20, 48, 24, 28, 28, 28, 28].map((w, i) => (
               <div key={i} className={`skeleton h-3 w-${w}`} />
             ))}

@@ -71,7 +71,7 @@ export default async function ReportsPage() {
   const brands: RawBrand[] = (rawBrands ?? []).map((b: any) => ({ id: b.id, name: b.name }))
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title="报表中心" />
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-5">
         <div className="flex items-baseline justify-between">

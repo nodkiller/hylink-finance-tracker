@@ -22,7 +22,7 @@ export default async function ProfilePage() {
     .single<{ full_name: string | null; role: string; created_at: string }>()
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title="个人资料" />
       <main className="max-w-2xl mx-auto px-6 py-8 space-y-2">
         <div className="mb-6">

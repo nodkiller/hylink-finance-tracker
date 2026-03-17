@@ -92,7 +92,7 @@ export default async function BrandDetailPage({
   const totalProfit = totalRevenue - totalExpenses
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
+    <div className="min-h-screen">
       <AppHeader title="品牌详情" />
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
