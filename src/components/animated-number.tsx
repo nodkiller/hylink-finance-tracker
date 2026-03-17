@@ -2,9 +2,18 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+type Format = 'currency-aud' | 'number'
+
+function applyFormat(n: number, format: Format): string {
+  if (format === 'currency-aud') {
+    return `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
+  }
+  return String(Math.round(n))
+}
+
 interface Props {
   value: number
-  formatter?: (n: number) => string
+  format?: Format
   duration?: number
   className?: string
 }
@@ -12,7 +21,7 @@ interface Props {
 /** Animates a number from its previous value to `value` using easeOutCubic */
 export default function AnimatedNumber({
   value,
-  formatter,
+  format = 'number',
   duration = 900,
   className,
 }: Props) {
@@ -46,7 +55,7 @@ export default function AnimatedNumber({
     return () => cancelAnimationFrame(rafRef.current)
   }, [value, duration])
 
-  const text = formatter ? formatter(displayed) : String(Math.round(displayed))
+  const text = applyFormat(displayed, format)
 
   return <span className={className}>{text}</span>
 }

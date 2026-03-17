@@ -316,7 +316,7 @@ export default async function DashboardPage({
           <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
             <div className="absolute left-0 inset-y-0 w-1 bg-[#38A169] rounded-l-xl" />
             <p className="text-xs text-gray-400 mb-1">总收入（已收款）</p>
-            <AnimatedNumber value={totalRevenue} formatter={fmt} className="text-2xl font-bold text-[#38A169]" />
+            <AnimatedNumber value={totalRevenue} format="currency-aud" className="text-2xl font-bold text-[#38A169]" />
             <div className="flex items-center gap-1.5 mt-1.5">
               <MoMBadge pct={revenueMoM} />
               <span className="text-xs text-gray-300">vs 上月</span>
@@ -327,7 +327,7 @@ export default async function DashboardPage({
           <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
             <div className="absolute left-0 inset-y-0 w-1 bg-[#E53E3E] rounded-l-xl" />
             <p className="text-xs text-gray-400 mb-1">总支出（已批准）</p>
-            <AnimatedNumber value={totalExpenses} formatter={fmt} className="text-2xl font-bold text-[#E53E3E]" />
+            <AnimatedNumber value={totalExpenses} format="currency-aud" className="text-2xl font-bold text-[#E53E3E]" />
             <div className="flex items-center gap-1.5 mt-1.5">
               <MoMBadge pct={expensesMoM} />
               <span className="text-xs text-gray-300">vs 上月</span>
@@ -338,7 +338,7 @@ export default async function DashboardPage({
           <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
             <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${totalProfit >= 0 ? 'bg-[#2B6CB0]' : 'bg-[#E53E3E]'}`} />
             <p className="text-xs text-gray-400 mb-1">总利润</p>
-            <AnimatedNumber value={totalProfit} formatter={fmt}
+            <AnimatedNumber value={totalProfit} format="currency-aud"
               className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`} />
             <div className="flex items-center gap-1.5 mt-1.5">
               <MoMBadge pct={profitMoM} />
