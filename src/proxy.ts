@@ -60,27 +60,32 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/admin')
 
   if (needsRoleCheck) {
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single<{ role: string }>()
-    const role = profile?.role ?? 'Staff'
 
-    if (pathname.startsWith('/admin/users') && !SUPER_ADMIN_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL('/projects', request.url))
-    }
-    if (pathname.startsWith('/admin/settings') && !SUPER_ADMIN_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL('/projects', request.url))
-    }
-    if (pathname.startsWith('/admin') && !ADMIN_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL('/projects', request.url))
-    }
-    if (pathname.startsWith('/reports') && !DASHBOARD_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL('/projects', request.url))
-    }
-    if (pathname.startsWith('/dashboard') && !DASHBOARD_ROLES.includes(role)) {
-      return NextResponse.redirect(new URL('/projects', request.url))
+    // If the DB query fails (e.g. RLS blocks the anon key), fall through and
+    // let the page component do its own role check with the service-role client.
+    if (!profileError) {
+      const role = profile?.role ?? 'Staff'
+
+      if (pathname.startsWith('/admin/users') && !SUPER_ADMIN_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
+      if (pathname.startsWith('/admin/settings') && !SUPER_ADMIN_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
+      if (pathname.startsWith('/admin') && !ADMIN_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
+      if (pathname.startsWith('/reports') && !DASHBOARD_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
+      if (pathname.startsWith('/dashboard') && !DASHBOARD_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
     }
   }
 
