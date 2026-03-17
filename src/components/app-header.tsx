@@ -6,6 +6,7 @@ import NewProjectDialog from '@/components/new-project-dialog'
 import NotificationBell from '@/components/notification-bell'
 import NavBar from '@/components/nav-bar'
 import Link from 'next/link'
+import HylinkLogo from '@/components/hylink-logo'
 import type { NotificationItem } from '@/app/actions/notifications'
 
 interface Props {
@@ -68,7 +69,7 @@ export default async function AppHeader({ title }: Props) {
   return (
     <header className="bg-white border-b border-gray-200 px-4 md:px-6 py-3 flex items-center justify-between shadow-sm">
       <div className="flex items-center gap-3 md:gap-5">
-        <span className="text-base font-bold text-[#1A365D] tracking-tight shrink-0">Hylink Finance</span>
+        <HylinkLogo />
         <NavBar
           hasDashboard={hasDashboard}
           hasReports={hasDashboard}

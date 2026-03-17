@@ -1,4 +1,5 @@
 import LoginForm from './login-form'
+import HylinkLogo from '@/components/hylink-logo'
 
 export default function LoginPage() {
   return (
@@ -17,8 +18,7 @@ export default function LoginPage() {
 
       {/* Logo top-left */}
       <div className="absolute top-8 left-10 z-10">
-        <span className="text-white/90 text-lg font-bold tracking-widest uppercase">Hylink</span>
-        <span className="ml-2 text-white/40 text-xs tracking-widest uppercase">Finance</span>
+        <HylinkLogo variant="dark" href="/login" />
       </div>
 
       {/* Center content */}
