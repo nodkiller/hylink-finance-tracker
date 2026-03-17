@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Inter, Noto_Sans_SC } from "next/font/google"
 import "./globals.css"
+import { ToastProvider } from "@/components/toast"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${inter.variable} ${notoSansSC.variable} antialiased`}>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   )

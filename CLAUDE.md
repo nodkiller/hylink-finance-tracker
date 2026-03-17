@@ -156,24 +156,33 @@ src/
 
 ## 品牌色彩系统
 
-定义在 `globals.css` `:root` 中：
+定义在 `globals.css` `:root` 中（SaaS 财务风格，参考 Xero/QuickBooks）：
 
 ```css
---brand-primary: #2A4A6B;   /* 靛蓝 — 按钮、链接、主色 */
---brand-green:   #3A7D44;   /* 绿 — 收入、利润、成功 */
---brand-red:     #C0392B;   /* 红 — 支出、亏损、错误 */
---brand-amber:   #D48E00;   /* 琥珀 — 待处理状态 */
+--brand-primary: #1A365D;   /* 深海军蓝 — 品牌标题、页面标题 */
+--brand-mid:     #2B6CB0;   /* 中蓝 — 导航激活态、交互元素、链接 */
+--brand-accent:  #3182CE;   /* 强调蓝 — 按钮（mapped to --primary） */
+--brand-green:   #38A169;   /* 绿 — 收入、利润、成功 */
+--brand-red:     #E53E3E;   /* 红 — 支出、亏损、错误、驳回 */
+--brand-amber:   #DD6B20;   /* 琥珀橙 — 待处理、即将到期 */
 --brand-wood:    #B9A284;   /* 木色 — 装饰 */
 ```
 
-Tailwind `--primary` 映射到 `#2A4A6B`（oklch格式），shadcn Button 默认样式自动跟随。
+Tailwind `--primary` 映射到 `#3182CE`（oklch 格式），shadcn Button 自动跟随。
 
 状态徽章颜色规则（所有文件统一）：
-- Active → `bg-[#3A7D44]/10 text-[#3A7D44] border-[#3A7D44]/25`
-- Pending Approval → `bg-[#D48E00]/10 text-[#D48E00] border-[#D48E00]/25`
-- Completed → `bg-[#2A4A6B]/10 text-[#2A4A6B] border-[#2A4A6B]/25`
-- Rejected → `bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/25`
+- Active → `bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25`
+- Pending Approval → `bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25`
+- Completed → `bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25`
+- Rejected → `bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25`
 - Reconciled → `bg-gray-100 text-gray-500 border-gray-200`
+
+文字颜色规范：
+- 主文字：`#1A202C`（原 `#333333`）
+- 次要文字：`text-gray-600` ≈ `#4A5568`
+- 辅助文字：`text-gray-400` / `text-gray-500` ≈ `#718096`
+
+页面背景：`#F7FAFC`（原 `#F9F9F9`，略带蓝调的中性白）
 
 ---
 

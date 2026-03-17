@@ -22,6 +22,10 @@ export async function addRevenue(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: '未登录' }
 
+  const { data: profile } = await adminClient()
+    .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+
   const project_id = formData.get('project_id') as string
   const description = (formData.get('description') as string).trim()
   const invoice_number = (formData.get('invoice_number') as string)?.trim() || null
@@ -61,7 +65,7 @@ export async function updateRevenue(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: '未登录' }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient()
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
   if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
 
@@ -97,6 +101,36 @@ export async function updateRevenue(
   return { success: true }
 }
 
+export async function markRevenuePaid(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: '未登录' }
+
+  const revenue_id = formData.get('revenue_id') as string
+  const db = adminClient()
+
+  const { data: existing } = await db
+    .from('revenues').select('project_id, status').eq('id', revenue_id)
+    .single<{ project_id: string; status: string }>()
+  if (!existing) return { error: '收入记录不存在' }
+  if (existing.status === 'Paid') return { error: '已收款' }
+
+  const today = new Date().toISOString().slice(0, 10)
+  const { error } = await db.from('revenues').update({
+    status: 'Paid',
+    received_date: today,
+  }).eq('id', revenue_id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/projects/${existing.project_id}`)
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function deleteRevenue(
   _prev: ActionState,
   formData: FormData
@@ -105,7 +139,7 @@ export async function deleteRevenue(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: '未登录' }
 
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient()
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
   if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
 

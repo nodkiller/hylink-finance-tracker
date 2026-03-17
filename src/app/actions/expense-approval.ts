@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { notify } from '@/lib/notify'
 
 type ActionState = { error: string } | { success: boolean } | undefined
 
@@ -18,7 +19,7 @@ async function assertApprover() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
-  const { data: profile } = await supabase
+  const { data: profile } = await adminClient()
     .from('profiles')
     .select('role')
     .eq('id', user.id)
@@ -65,6 +66,22 @@ export async function approveExpense(
 
   if (error) return { error: error.message }
 
+  // Notify expense creator
+  const { data: fullExpense } = await adminClient()
+    .from('expenses')
+    .select('created_by, payee, amount, project_id')
+    .eq('id', expense_id)
+    .single<{ created_by: string | null; payee: string; amount: number; project_id: string }>()
+  if (fullExpense?.created_by) {
+    await notify([{
+      user_id: fullExpense.created_by,
+      type: 'expense_approved',
+      title: `付款请求已批准：${fullExpense.payee}`,
+      body: `A$${Number(fullExpense.amount).toLocaleString()}`,
+      link: `/projects/${fullExpense.project_id}`,
+    }])
+  }
+
   revalidatePath('/dashboard')
   revalidatePath(`/projects/${expense.project_id}`)
   return { success: true }
@@ -106,6 +123,22 @@ export async function rejectExpense(
     .eq('id', expense_id)
 
   if (error) return { error: error.message }
+
+  // Notify expense creator
+  const { data: fullExpense } = await adminClient()
+    .from('expenses')
+    .select('created_by, payee, amount, project_id')
+    .eq('id', expense_id)
+    .single<{ created_by: string | null; payee: string; amount: number; project_id: string }>()
+  if (fullExpense?.created_by) {
+    await notify([{
+      user_id: fullExpense.created_by,
+      type: 'expense_rejected',
+      title: `付款请求已拒绝：${fullExpense.payee}`,
+      body: reason ?? undefined,
+      link: `/projects/${fullExpense.project_id}`,
+    }])
+  }
 
   revalidatePath('/dashboard')
   revalidatePath(`/projects/${expense.project_id}`)

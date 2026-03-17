@@ -1,9 +1,13 @@
 'use client'
 
 import { useRef, useState, useTransition, useActionState } from 'react'
+import EmptyState from '@/components/empty-state'
+import { ReceiptIcon } from 'lucide-react'
 import EditExpenseDialog from './edit-expense-dialog'
 import { useRouter } from 'next/navigation'
+import { useToast } from '@/components/toast'
 import { createExpense, confirmPayment } from '@/app/actions/expenses'
+import { approveExpense, rejectExpense } from '@/app/actions/expense-approval'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -33,14 +37,15 @@ interface Props {
   expenses: ExpenseRecord[]
   canSubmit: boolean
   canConfirmPayment: boolean
+  canApprove?: boolean
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  'Pending Approval':       'bg-[#D48E00]/10 text-[#D48E00] border-[#D48E00]/25',
+  'Pending Approval':       'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
   'Pending Super Approval': 'bg-purple-50 text-purple-700 border-purple-200',
-  'Approved':               'bg-[#2A4A6B]/10 text-[#2A4A6B] border-[#2A4A6B]/25',
-  'Rejected':               'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/25',
-  'Paid':                   'bg-[#3A7D44]/10 text-[#3A7D44] border-[#3A7D44]/25',
+  'Approved':               'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
+  'Rejected':               'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
+  'Paid':                   'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
 }
 
 function fmt(n: number) {
@@ -49,14 +54,113 @@ function fmt(n: number) {
 
 type PayState = { error: string } | { success: boolean } | undefined
 
+function ExpenseApprovalActions({ expense }: { expense: ExpenseRecord }) {
+  const router = useRouter()
+  const { toast } = useToast()
+  const [rejectOpen, setRejectOpen] = useState(false)
+
+  const approveAction = async (_prev: PayState, formData: FormData): Promise<PayState> => {
+    const result = await approveExpense(_prev, formData)
+    if (result && 'success' in result && result.success) {
+      toast(`付款请求已批准：${expense.payee}`, 'success')
+      router.refresh()
+    }
+    return result
+  }
+
+  const rejectAction = async (_prev: PayState, formData: FormData): Promise<PayState> => {
+    const result = await rejectExpense(_prev, formData)
+    if (result && 'success' in result && result.success) {
+      setRejectOpen(false)
+      toast(`付款请求已驳回：${expense.payee}`, 'error')
+      router.refresh()
+    }
+    return result
+  }
+
+  const [approveState, approveFormAction, approvePending] = useActionState(approveAction, undefined)
+  const [rejectState, rejectFormAction, rejectPending] = useActionState(rejectAction, undefined)
+
+  return (
+    <>
+      {/* Approve — inline form, no dialog needed */}
+      <form action={approveFormAction}>
+        <input type="hidden" name="expense_id" value={expense.id} />
+        <button
+          type="submit"
+          disabled={approvePending}
+          className="text-xs text-[#38A169] hover:text-[#2d6235] hover:underline disabled:opacity-50"
+        >
+          {approvePending ? '处理中...' : '批准'}
+        </button>
+      </form>
+      {approveState && 'error' in approveState && (
+        <p className="text-xs text-red-500">{approveState.error}</p>
+      )}
+
+      {/* Reject — opens a dialog for reason */}
+      <button
+        onClick={() => setRejectOpen(true)}
+        className="text-xs text-[#E53E3E] hover:text-[#a93226] hover:underline"
+      >
+        驳回
+      </button>
+
+      <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>驳回付款请求</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-500">
+            收款方：<span className="font-medium text-gray-900">{expense.payee}</span>
+            <span className="mx-1">·</span>
+            <span className="font-medium text-gray-900">{fmt(expense.amount)}</span>
+          </p>
+          <form action={rejectFormAction} className="space-y-4 pt-1">
+            <input type="hidden" name="expense_id" value={expense.id} />
+            <div className="space-y-1.5">
+              <Label htmlFor={`reject-reason-${expense.id}`}>
+                驳回原因 <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id={`reject-reason-${expense.id}`}
+                name="reason"
+                placeholder="请填写驳回原因..."
+                required
+                autoFocus
+              />
+            </div>
+            {rejectState && 'error' in rejectState && (
+              <p className="text-sm text-red-600">{rejectState.error}</p>
+            )}
+            <div className="flex gap-2 justify-end">
+              <Button type="button" variant="outline" size="sm" onClick={() => setRejectOpen(false)} disabled={rejectPending}>
+                取消
+              </Button>
+              <Button type="submit" size="sm" disabled={rejectPending}
+                className="bg-[#E53E3E] hover:bg-[#a93226] text-white border-0">
+                {rejectPending ? (
+                  <><svg className="animate-spin w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"/></svg>处理中</>
+                ) : '确认驳回'}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 function ConfirmPaymentButton({ expense }: { expense: ExpenseRecord }) {
   const router = useRouter()
+  const { toast } = useToast()
   const [open, setOpen] = useState(false)
 
   const action = async (_prev: PayState, formData: FormData): Promise<PayState> => {
     const result = await confirmPayment(_prev, formData)
     if (result && 'success' in result && result.success) {
       setOpen(false)
+      toast(`已确认付款：${expense.payee} ${fmt(expense.amount)}`, 'success')
       router.refresh()
     }
     return result
@@ -105,8 +209,10 @@ function ConfirmPaymentButton({ expense }: { expense: ExpenseRecord }) {
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
                 取消
               </Button>
-              <Button type="submit" disabled={pending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                {pending ? '处理中...' : '确认已付款'}
+              <Button type="submit" disabled={pending} className="bg-[#38A169] hover:bg-[#2d6235] text-white border-0">
+                {pending ? (
+                  <><svg className="animate-spin w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"/></svg>处理中</>
+                ) : '确认已付款'}
               </Button>
             </div>
           </form>
@@ -116,7 +222,7 @@ function ConfirmPaymentButton({ expense }: { expense: ExpenseRecord }) {
   )
 }
 
-export default function ExpenseSection({ projectId, expenses, canSubmit, canConfirmPayment }: Props) {
+export default function ExpenseSection({ projectId, expenses, canSubmit, canConfirmPayment, canApprove }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
@@ -132,6 +238,22 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
   const totalAmount   = expenses.reduce((s, e) => s + Number(e.amount), 0)
   const paidAmount    = expenses.filter(e => e.status === 'Paid').reduce((s, e) => s + Number(e.amount), 0)
   const pendingAmount = expenses.filter(e => e.status === 'Pending Approval').reduce((s, e) => s + Number(e.amount), 0)
+
+  function isDueSoon(paymentDate: string | null, status: string): boolean {
+    if (!paymentDate || status === 'Paid' || status === 'Rejected') return false
+    const due = new Date(paymentDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const diffDays = (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    return diffDays <= 7
+  }
+
+  function fmtDate(d: string | null) {
+    if (!d) return null
+    return new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  }
+
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -149,10 +271,12 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
       const result = await createExpense(undefined, formData)
       if (result && 'error' in result) {
         setError(result.error)
+        toast(result.error, 'error')
       } else {
         setOpen(false)
         setAmountValue('')
         formRef.current?.reset()
+        toast('付款请求已提交', 'success')
         router.refresh()
       }
     })
@@ -184,33 +308,91 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
         </div>
         <div className="px-5 py-3">
           <p className="text-xs text-gray-400 mb-0.5">已付款</p>
-          <p className="text-lg font-semibold text-green-600">{fmt(paidAmount)}</p>
+          <p className="text-lg font-semibold text-[#38A169]">{fmt(paidAmount)}</p>
         </div>
         <div className="px-5 py-3">
           <p className="text-xs text-gray-400 mb-0.5">待审批</p>
-          <p className="text-lg font-semibold text-yellow-600">{fmt(pendingAmount)}</p>
+          <p className="text-lg font-semibold text-[#DD6B20]">{fmt(pendingAmount)}</p>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Payment progress bar */}
+      {totalAmount > 0 && (
+        <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/40">
+          <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+            <span>付款进度</span>
+            <span className="font-medium text-[#38A169]">
+              {Math.round((paidAmount / totalAmount) * 100)}%
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#38A169] rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, (paidAmount / totalAmount) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile card list */}
       {expenses.length === 0 ? (
-        <div className="px-5 py-8 text-center text-gray-400 text-sm">暂无付款记录</div>
+        <EmptyState
+          icon={<ReceiptIcon className="w-8 h-8" />}
+          title="暂无付款记录"
+          description="发起付款请求后将在此显示"
+        />
       ) : (
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-100">
+        <>
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {expenses.map(e => (
+            <div key={e.id} className={`px-4 py-3.5 ${isDueSoon(e.payment_date, e.status) ? 'bg-amber-50/60' : ''}`}>
+              <div className="flex items-start justify-between gap-2 mb-1.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{e.payee}</p>
+                  <p className="text-xs text-gray-500 truncate mt-0.5">{e.description}</p>
+                </div>
+                <p className="text-sm font-mono font-semibold text-gray-800 shrink-0">{fmt(e.amount)}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_STYLES[e.status] ?? ''}`}>
+                  {e.status === 'Rejected' ? '已拒绝' : e.status}
+                </span>
+                {e.payment_date && e.status !== 'Paid' && (
+                  <span className={`text-xs ${isDueSoon(e.payment_date, e.status) ? 'text-[#DD6B20] font-semibold' : 'text-gray-400'}`}>
+                    到期 {fmtDate(e.payment_date)}{isDueSoon(e.payment_date, e.status) && ' ⚠'}
+                  </span>
+                )}
+                <a href={e.attachment_url} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-[#2B6CB0] hover:underline ml-auto">附件</a>
+                {canConfirmPayment && e.status === 'Approved' && (
+                  <ConfirmPaymentButton expense={e} />
+                )}
+                {canApprove && (e.status === 'Pending Approval' || e.status === 'Pending Super Approval') && (
+                  <ExpenseApprovalActions expense={e} />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table */}
+        <table className="hidden md:table w-full text-sm">
+          <thead className="border-b border-gray-100" style={{ backgroundColor: '#F7FAFC' }}>
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">收款方</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">用途</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 w-28">发票号</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 w-28">金额</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 w-32">状态</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 w-24">审批人</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 w-32">操作</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568]">收款方</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568]">用途</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">发票号</th>
+              <th className="text-right px-4 py-3 font-semibold text-[#4A5568] w-28">金额</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-32">状态</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">到期日期</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-24">审批人</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-32">操作</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
-            {expenses.map(e => (
-              <tr key={e.id} className="hover:bg-gray-50/50">
+          <tbody className="divide-y divide-gray-100">
+            {expenses.map((e, idx) => (
+              <tr key={e.id} className={`animate-fade-in-up transition-colors ${isDueSoon(e.payment_date, e.status) ? 'bg-amber-50/70 hover:bg-amber-50' : idx % 2 === 0 ? 'bg-white hover:bg-[#EBF8FF]/50' : 'bg-[#F7FAFC]/60 hover:bg-[#EBF8FF]/50'}`} style={{ animationDelay: `${idx * 40}ms` }}>
                 <td className="px-4 py-3 font-medium text-gray-900">{e.payee}</td>
                 <td className="px-4 py-3 text-gray-600 max-w-[160px] truncate">{e.description}</td>
                 <td className="px-4 py-3 font-mono text-xs text-gray-500">{e.invoice_number}</td>
@@ -225,11 +407,28 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
                     </p>
                   )}
                 </td>
+                <td className="px-4 py-3">
+                  {e.status === 'Paid' ? (
+                    <span className="text-xs text-gray-300">—</span>
+                  ) : e.payment_date ? (
+                    <span className={`text-xs ${isDueSoon(e.payment_date, e.status) ? 'text-[#DD6B20] font-semibold' : 'text-gray-500'}`}>
+                      {fmtDate(e.payment_date)}
+                      {isDueSoon(e.payment_date, e.status) && (
+                        <span className="ml-1 text-[#DD6B20]">⚠</span>
+                      )}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-300">未设置</span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-xs text-gray-500">
                   {e.approver_name ?? (e.status === 'Approved' ? '自动' : '—')}
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-col gap-1">
+                    {canApprove && (e.status === 'Pending Approval' || e.status === 'Pending Super Approval') && (
+                      <ExpenseApprovalActions expense={e} />
+                    )}
                     {canSubmit && (
                       <EditExpenseDialog expense={{
                         id: e.id,
@@ -264,6 +463,7 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
             ))}
           </tbody>
         </table>
+        </>
       )}
 
       {/* Add Expense Dialog */}
@@ -344,7 +544,7 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="exp-date">预计付款日期</Label>
+              <Label htmlFor="exp-date">付款到期日</Label>
               <Input id="exp-date" name="payment_date" type="date" />
             </div>
 
@@ -372,7 +572,9 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
                 取消
               </Button>
               <Button type="submit" disabled={isPending}>
-                {isPending ? '提交中...' : '提交申请'}
+                {isPending ? (
+                  <><svg className="animate-spin w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"/></svg>提交中</>
+                ) : '提交申请'}
               </Button>
             </div>
           </form>

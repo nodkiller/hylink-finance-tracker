@@ -51,9 +51,9 @@ export default async function ProjectsPage() {
   const brands = Array.from(new Set(rows.map(r => r.brand_name))).sort()
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F9F9F9' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
       <AppHeader title="项目" />
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
         <div className="flex items-baseline justify-between">
           <h1 className="text-2xl font-bold text-gray-900">项目列表</h1>
         </div>

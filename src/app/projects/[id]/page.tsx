@@ -7,17 +7,20 @@ import ExpenseSection from './expense-section'
 import ReconcilePanel from './reconcile-panel'
 import EditProjectDialog from './edit-project-dialog'
 import DeleteProjectButton from './delete-project-button'
+import ProjectApprovalButtons from './project-approval-buttons'
+import ApprovalHistory, { type ApprovalRecord } from './approval-history'
+import ProjectTimeline, { type TimelineEvent } from './project-timeline'
 
 interface Props {
   params: Promise<{ id: string }>
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  'Active':           'bg-[#3A7D44]/10 text-[#3A7D44] border-[#3A7D44]/25',
-  'Pending Approval': 'bg-[#D48E00]/10 text-[#D48E00] border-[#D48E00]/25',
-  'Completed':        'bg-[#2A4A6B]/10 text-[#2A4A6B] border-[#2A4A6B]/25',
+  'Active':           'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
+  'Pending Approval': 'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
+  'Completed':        'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
   'Reconciled':       'bg-gray-100 text-gray-500 border-gray-200',
-  'Rejected':         'bg-[#C0392B]/10 text-[#C0392B] border-[#C0392B]/25',
+  'Rejected':         'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
 }
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -39,13 +42,6 @@ export default async function ProjectDetailPage({ params }: Props) {
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = user
-    ? await supabase.from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-    : { data: null }
-  const userRole = profile?.role ?? ''
-  const canSubmit = ['Controller', 'Admin', 'Super Admin'].includes(userRole)
-  const canConfirmPayment = canSubmit
-  const canEdit = canSubmit
 
   const db = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -53,16 +49,27 @@ export default async function ProjectDetailPage({ params }: Props) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
+  const { data: profile } = user
+    ? await db.from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
+    : { data: null }
+  const userRole = profile?.role ?? ''
+  const canSubmit = ['Controller', 'Admin', 'Super Admin'].includes(userRole)
+  const canConfirmPayment = canSubmit
+  const canEdit = canSubmit
+  const canApprove = ['Controller', 'Super Admin'].includes(userRole)
+
   const [
     { data: project },
     { data: revenues },
     { data: expensesRaw },
     { data: brands },
+    { data: approvalsRaw },
   ] = await Promise.all([
     db.from('projects').select('*, brands(name, id)').eq('id', id).single(),
     db.from('revenues').select('*').eq('project_id', id).order('issue_date', { ascending: false }),
     db.from('expenses').select('*').eq('project_id', id).order('created_at', { ascending: false }),
     db.from('brands').select('id, name').order('name'),
+    db.from('project_approvals').select('*').eq('project_id', id).order('created_at', { ascending: false }),
   ])
 
   if (!project) notFound()
@@ -74,11 +81,21 @@ export default async function ProjectDetailPage({ params }: Props) {
     : { data: null }
 
   const approverIds = [...new Set((expensesRaw ?? []).map((e: any) => e.approver_id).filter(Boolean))] as string[]
+  const approvalApproverIds = [...new Set((approvalsRaw ?? []).map((a: any) => a.approved_by).filter(Boolean))] as string[]
+  const allApproverIds = [...new Set([...approverIds, ...approvalApproverIds])]
   const approverMap = new Map<string, string>()
-  if (approverIds.length > 0) {
-    const { data: approvers } = await db.from('profiles').select('id, full_name').in('id', approverIds)
+  if (allApproverIds.length > 0) {
+    const { data: approvers } = await db.from('profiles').select('id, full_name').in('id', allApproverIds)
     for (const a of approvers ?? []) approverMap.set((a as any).id, (a as any).full_name ?? '—')
   }
+
+  const approvals: ApprovalRecord[] = (approvalsRaw ?? []).map((a: any) => ({
+    id: a.id,
+    action: a.action,
+    comment: a.comment,
+    approver_name: approverMap.get(a.approved_by) ?? '—',
+    created_at: a.created_at,
+  }))
 
   const brandName: string   = p.brands?.name ?? '—'
   const creatorName: string = creatorProfile?.full_name ?? '—'
@@ -92,16 +109,76 @@ export default async function ProjectDetailPage({ params }: Props) {
     .filter((e: any) => e.status === 'Approved' || e.status === 'Paid')
     .reduce((s: number, e: any) => s + Number(e.amount), 0)
 
+  const canReconcile = ['Controller', 'Super Admin'].includes(userRole)
+  const unpaidRevenueCount = allRevenues.filter((r: any) => r.status !== 'Paid').length
+  const pendingExpenseCount = allExpenses.filter((e: any) => !['Paid', 'Rejected'].includes(e.status)).length
+
+  const profit = totalRevenue - totalExpenses
+  const profitMargin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : null
+
+  // Build timeline events
+  const timelineEvents: TimelineEvent[] = [
+    // Project created
+    {
+      id: 'created',
+      date: p.created_at,
+      type: 'created',
+      title: '项目创建',
+      subtitle: `由 ${creatorName} 提交申请`,
+      color: 'blue',
+    },
+    // Project approvals
+    ...(approvalsRaw ?? []).map((a: any) => ({
+      id: `approval-${a.id}`,
+      date: a.created_at,
+      type: a.action,
+      title: a.action === 'approved' ? '项目已审批通过' : '项目已驳回',
+      subtitle: a.comment ?? `审批人：${approverMap.get(a.approved_by) ?? '—'}`,
+      color: (a.action === 'approved' ? 'green' : 'red') as TimelineEvent['color'],
+    })),
+    // Revenues added
+    ...(revenues ?? []).map((r: any) => ({
+      id: `revenue-${r.id}`,
+      date: r.created_at,
+      type: 'revenue',
+      title: `收入录入：${r.description ?? '未命名'}`,
+      subtitle: `A$${Number(r.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
+      color: 'green' as const,
+    })),
+    // Expenses submitted
+    ...(expensesRaw ?? []).map((e: any) => ({
+      id: `expense-${e.id}`,
+      date: e.created_at,
+      type: 'expense_submitted',
+      title: `付款申请：${e.payee}`,
+      subtitle: `A$${Number(e.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
+      color: 'amber' as const,
+    })),
+    // Expenses paid
+    ...(expensesRaw ?? [])
+      .filter((e: any) => e.status === 'Paid' && e.payment_date)
+      .map((e: any) => ({
+        id: `paid-${e.id}`,
+        date: e.payment_date,
+        type: 'expense_paid',
+        title: `付款完成：${e.payee}`,
+        subtitle: `A$${Number(e.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
+        color: 'green' as const,
+      })),
+  ]
+
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F9F9F9' }}>
+    <div className="min-h-screen" style={{ backgroundColor: '#F7FAFC' }}>
       <AppHeader title={p.name} />
 
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+      <main className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <a href="/projects" className="hover:text-gray-600 transition-colors">项目列表</a>
           <span>/</span>
-          <span className="text-gray-700">{p.name}</span>
+          <a href={`/projects?brand=${p.brand_id}`} className="hover:text-gray-600 transition-colors">{brandName}</a>
+          <span>/</span>
+          <span className="text-gray-700 font-medium truncate max-w-[320px]">{p.name}</span>
         </div>
 
         {/* Project Info Card */}
@@ -125,6 +202,9 @@ export default async function ProjectDetailPage({ params }: Props) {
                   <span className="w-1.5 h-1.5 rounded-full bg-white inline-block" />
                   Active
                 </span>
+              )}
+              {canApprove && p.status === 'Pending Approval' && (
+                <ProjectApprovalButtons projectId={p.id} brandName={brandName} />
               )}
               {canEdit && (
                 <>
@@ -165,6 +245,24 @@ export default async function ProjectDetailPage({ params }: Props) {
             />
             <InfoRow label="预估收入" value={fmt(p.estimated_revenue)} />
             <InfoRow label="申请人" value={creatorName} />
+            <InfoRow
+              label="实际利润"
+              value={
+                <span className={profit >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}>
+                  {fmt(profit)}
+                </span>
+              }
+            />
+            <InfoRow
+              label="利润率"
+              value={
+                profitMargin !== null
+                  ? <span className={profitMargin >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}>
+                      {profitMargin.toFixed(1)}%
+                    </span>
+                  : <span className="text-gray-400">—</span>
+              }
+            />
             {p.notes && <InfoRow label="备注" value={<span className="font-normal text-gray-600">{p.notes}</span>} />}
             {p.rejection_reason && (
               <div className="col-span-2">
@@ -179,6 +277,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         <RevenueSection
           projectId={id}
           canEdit={canEdit}
+          isSuperAdmin={userRole === 'Super Admin'}
           revenues={(revenues ?? []).map((r: any) => ({
             id: r.id,
             description: r.description,
@@ -198,14 +297,21 @@ export default async function ProjectDetailPage({ params }: Props) {
             estimatedRevenue={p.estimated_revenue}
             totalRevenue={totalRevenue}
             totalExpenses={totalExpenses}
+            canReconcile={canReconcile}
+            unpaidRevenueCount={unpaidRevenueCount}
+            pendingExpenseCount={pendingExpenseCount}
           />
         )}
+
+        {/* Approval History */}
+        <ApprovalHistory approvals={approvals} />
 
         {/* Expense Section */}
         <ExpenseSection
           projectId={id}
           canSubmit={canSubmit}
           canConfirmPayment={canConfirmPayment}
+          canApprove={canApprove}
           expenses={(expensesRaw ?? []).map((e: any) => ({
             id: e.id,
             payee: e.payee,
@@ -219,6 +325,9 @@ export default async function ProjectDetailPage({ params }: Props) {
             payment_date: e.payment_date,
           }))}
         />
+
+        {/* Project Timeline */}
+        <ProjectTimeline events={timelineEvents} />
       </main>
     </div>
   )

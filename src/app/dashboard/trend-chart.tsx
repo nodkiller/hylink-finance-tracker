@@ -15,6 +15,7 @@ export interface MonthlyDataPoint {
   month: string   // e.g. "Jan", "Feb"
   revenue: number
   expenses: number
+  profit: number
 }
 
 interface Props {
@@ -26,6 +27,8 @@ function fmtY(n: number) {
   return `A$${n}`
 }
 
+const LABELS: Record<string, string> = { revenue: '收入', expenses: '支出', profit: '利润' }
+
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
@@ -33,7 +36,7 @@ function CustomTooltip({ active, payload, label }: any) {
       <p className="font-semibold text-gray-700 mb-1">{label}</p>
       {payload.map((p: any) => (
         <p key={p.name} style={{ color: p.color }}>
-          {p.name === 'revenue' ? '收入' : '支出'}:{' '}
+          {LABELS[p.name] ?? p.name}:{' '}
           <span className="font-medium">
             A${Number(p.value).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
           </span>
@@ -67,7 +70,7 @@ export default function TrendChart({ data }: Props) {
           iconSize={8}
           formatter={(value) => (
             <span className="text-xs text-gray-500">
-              {value === 'revenue' ? '收入' : '支出'}
+              {LABELS[value] ?? value}
             </span>
           )}
         />
@@ -85,6 +88,15 @@ export default function TrendChart({ data }: Props) {
           stroke="#ef4444"
           strokeWidth={2}
           dot={{ r: 3, fill: '#ef4444', strokeWidth: 0 }}
+          activeDot={{ r: 5 }}
+        />
+        <Line
+          type="monotone"
+          dataKey="profit"
+          stroke="#2B6CB0"
+          strokeWidth={2}
+          strokeDasharray="4 2"
+          dot={{ r: 3, fill: '#2B6CB0', strokeWidth: 0 }}
           activeDot={{ r: 5 }}
         />
       </LineChart>

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
+import { notifyRoles } from '@/lib/notify'
 
 type ActionState = { error: string } | { success: boolean } | undefined
 
@@ -93,9 +94,35 @@ export async function createExpense(
     status,
     attachment_url: publicUrl,
     payment_date,
+    created_by: user.id,
   })
 
   if (error) return { error: error.message }
+
+  // Notify approvers if expense requires approval
+  if (status === 'Pending Approval') {
+    await notifyRoles(
+      ['Controller', 'Admin', 'Super Admin'],
+      user.id,
+      {
+        type: 'expense_submitted',
+        title: `付款请求待审批：${payee}`,
+        body: `A$${amount.toLocaleString()} · ${description}`,
+        link: `/projects/${project_id}`,
+      }
+    )
+  } else if (status === 'Pending Super Approval') {
+    await notifyRoles(
+      ['Super Admin'],
+      user.id,
+      {
+        type: 'expense_submitted',
+        title: `大额付款待审批：${payee}`,
+        body: `A$${amount.toLocaleString()} · ${description}`,
+        link: `/projects/${project_id}`,
+      }
+    )
+  }
 
   revalidatePath(`/projects/${project_id}`)
   return { success: true }
@@ -153,8 +180,9 @@ export async function updateExpense(
     attachment_url = db.storage.from('invoices').getPublicUrl(uploadData.path).data.publicUrl
   }
 
+  // Preserve status for terminal states; only recalculate for pending/unapproved states
   let newStatus = existing.status
-  if (existing.status !== 'Paid') {
+  if (!['Paid', 'Approved'].includes(existing.status)) {
     const { data: settings } = await db
       .from('approval_settings').select('auto_limit, admin_limit').eq('id', 1)
       .single<{ auto_limit: number; admin_limit: number }>()

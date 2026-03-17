@@ -79,7 +79,7 @@ export default function EditExpenseDialog({ expense }: Props) {
     <>
       <button
         onClick={() => { setOpen(true); setError(null); setShowDeleteConfirm(false) }}
-        className="text-xs text-[#2A4A6B] hover:text-[#1a3555] hover:underline"
+        className="text-xs text-[#2B6CB0] hover:text-[#1a3555] hover:underline"
       >
         编辑
       </button>

@@ -4,11 +4,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
       {/* Gradient background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0d2137] via-[#1a3a5c] to-[#2A4A6B]" />
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0d2137] via-[#1a3a5c] to-[#2B6CB0]" />
 
       {/* Decorative blobs */}
-      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[#B9A284]/30 to-[#D48E00]/20 blur-3xl" />
-      <div className="absolute bottom-[-15%] left-[-5%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#2A4A6B]/60 to-[#3A7D44]/20 blur-3xl" />
+      <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-[#B9A284]/30 to-[#DD6B20]/20 blur-3xl" />
+      <div className="absolute bottom-[-15%] left-[-5%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-[#2B6CB0]/60 to-[#38A169]/20 blur-3xl" />
 
       {/* Large decorative character */}
       <div className="absolute left-[8%] top-1/2 -translate-y-1/2 select-none pointer-events-none hidden lg:block">

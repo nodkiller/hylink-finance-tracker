@@ -67,7 +67,7 @@ function ApproveExpenseButton({
           type="submit"
           size="sm"
           disabled={pending}
-          className="bg-[#3A7D44] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
+          className="bg-[#38A169] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
         >
           {pending ? '...' : '批准'}
         </Button>

@@ -30,7 +30,7 @@ export default function ExportButton() {
     <button
       onClick={handleExport}
       disabled={loading}
-      className="text-xs text-[#2A4A6B] border border-[#2A4A6B]/30 rounded-md px-3 py-1.5 hover:bg-[#2A4A6B]/5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+      className="text-xs text-[#2B6CB0] border border-[#2B6CB0]/30 rounded-md px-3 py-1.5 hover:bg-[#2B6CB0]/5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
     >
       {loading ? '导出中...' : '导出报表 CSV'}
     </button>

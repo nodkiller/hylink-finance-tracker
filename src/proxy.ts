@@ -1,9 +1,10 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-const DASHBOARD_ROLES = ['Controller', 'Admin', 'Super Admin']
-const SETTINGS_ROLES  = ['Admin', 'Super Admin']
-const ADMIN_ROLES     = ['Controller', 'Admin', 'Super Admin']
+const DASHBOARD_ROLES   = ['Controller', 'Admin', 'Super Admin']
+const SETTINGS_ROLES    = ['Admin', 'Super Admin']
+const ADMIN_ROLES       = ['Controller', 'Admin', 'Super Admin']
+const SUPER_ADMIN_ROLES = ['Super Admin']
 
 export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
@@ -55,6 +56,7 @@ export async function proxy(request: NextRequest) {
   // Role-based protection (lazy-load profile only when needed)
   const needsRoleCheck =
     pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/reports') ||
     pathname.startsWith('/admin')
 
   if (needsRoleCheck) {
@@ -65,10 +67,16 @@ export async function proxy(request: NextRequest) {
       .single<{ role: string }>()
     const role = profile?.role ?? 'Staff'
 
-    if (pathname.startsWith('/admin/settings') && !SETTINGS_ROLES.includes(role)) {
+    if (pathname.startsWith('/admin/users') && !SUPER_ADMIN_ROLES.includes(role)) {
+      return NextResponse.redirect(new URL('/projects', request.url))
+    }
+    if (pathname.startsWith('/admin/settings') && !SUPER_ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL('/projects', request.url))
     }
     if (pathname.startsWith('/admin') && !ADMIN_ROLES.includes(role)) {
+      return NextResponse.redirect(new URL('/projects', request.url))
+    }
+    if (pathname.startsWith('/reports') && !DASHBOARD_ROLES.includes(role)) {
       return NextResponse.redirect(new URL('/projects', request.url))
     }
     if (pathname.startsWith('/dashboard') && !DASHBOARD_ROLES.includes(role)) {

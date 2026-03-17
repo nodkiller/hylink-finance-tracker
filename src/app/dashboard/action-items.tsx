@@ -69,7 +69,7 @@ function ApproveButton({ project, onDone }: { project: PendingProject; onDone: (
           type="submit"
           size="sm"
           disabled={pending}
-          className="bg-[#3A7D44] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
+          className="bg-[#38A169] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
         >
           {pending ? '...' : '批准'}
         </Button>
@@ -98,7 +98,7 @@ function RejectButton({ project, onDone }: { project: PendingProject; onDone: ()
         size="sm"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="border-[#C0392B]/40 text-[#C0392B] hover:bg-[#C0392B]/5 h-7 px-3 text-xs"
+        className="border-[#E53E3E]/40 text-[#E53E3E] hover:bg-[#E53E3E]/5 h-7 px-3 text-xs"
       >
         拒绝
       </Button>
@@ -156,7 +156,7 @@ export default function ActionItems({ projects: initial }: Props) {
               <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                 {p.brand_name}
               </span>
-              <Link href={`/projects/${p.id}`} className="font-medium text-sm text-gray-900 truncate mt-0.5 hover:text-[#2A4A6B] hover:underline block">{p.name}</Link>
+              <Link href={`/projects/${p.id}`} className="font-medium text-sm text-gray-900 truncate mt-0.5 hover:text-[#2B6CB0] hover:underline block">{p.name}</Link>
               <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
                 <span>预估 <span className="font-medium text-gray-700">{formatCurrency(p.estimated_revenue)}</span></span>
                 <span>·</span>
