@@ -5,7 +5,7 @@ import ActionItems, { type PendingProject } from './action-items'
 import PendingExpenses, { type PendingExpense } from './pending-expenses'
 import TrendChart, { type MonthlyDataPoint } from './trend-chart'
 import BrandBarChart, { type BrandBarData } from './brand-bar-chart'
-import ProjectStatusPie, { type StatusCount } from './project-status-pie'
+
 import ExportButton from './export-button'
 import AnimatedNumber from '@/components/animated-number'
 import Link from 'next/link'
@@ -53,7 +53,7 @@ function MoMBadge({ pct }: { pct: number | null }) {
   if (pct === null) return <span className="text-xs text-gray-300">—</span>
   const up = pct >= 0
   return (
-    <span className={`text-xs font-medium ${up ? 'text-[#38A169]' : 'text-[#E53E3E]'}`}>
+    <span className={`text-xs font-medium ${up ? 'text-[#16a34a]' : 'text-[#dc2626]'}`}>
       {up ? '↑' : '↓'} {Math.abs(pct).toFixed(1)}%
     </span>
   )
@@ -191,19 +191,7 @@ export default async function DashboardPage({
 
   const totalPending = pendingProjects.length + pendingExpenses.length
 
-  // ── KPI Calculations (range-filtered) ────────────────────────────────────
-  const totalRevenue = revenues
-    .filter((r: any) => r.status === 'Paid' && r.issue_date >= rangeStartStr)
-    .reduce((s: number, r: any) => s + Number(r.amount), 0)
-
-  const totalExpenses = expenses
-    .filter((e: any) => ['Approved', 'Paid'].includes(e.status) && e.created_at >= rangeStartStr)
-    .reduce((s: number, e: any) => s + Number(e.amount), 0)
-
-  const totalProfit = totalRevenue - totalExpenses
-  const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : null
-
-  // MoM (this month vs last month, always)
+  // MoM (this month vs last month)
   const thisMonthRevenue = revenues
     .filter((r: any) => r.status === 'Paid' && r.issue_date >= thisMonthStartStr)
     .reduce((s: number, r: any) => s + Number(r.amount), 0)
@@ -237,13 +225,22 @@ export default async function DashboardPage({
     .map((b: any) => ({ name: b.name, revenue: brandRevenueMap[b.name] ?? 0 }))
     .sort((a, b) => b.revenue - a.revenue)
 
-  // ── Project Status Pie ────────────────────────────────────────────────────
-  const statusMap: Record<string, number> = {}
-  for (const p of projects) {
-    const s = (p as any).status
-    statusMap[s] = (statusMap[s] ?? 0) + 1
+  // ── Brand This-Month Revenue (for progress bar list) ─────────────────────
+  const brandThisMonthMap: Record<string, number> = {}
+  for (const r of revenues) {
+    if ((r as any).status !== 'Paid' || (r as any).issue_date < thisMonthStartStr) continue
+    const name = (r as any).projects?.brands?.name ?? '—'
+    brandThisMonthMap[name] = (brandThisMonthMap[name] ?? 0) + Number((r as any).amount)
   }
-  const statusData: StatusCount[] = Object.entries(statusMap).map(([status, count]) => ({ status, count }))
+  const brandThisMonthList = brands
+    .map((b: any) => ({ name: b.name, revenue: brandThisMonthMap[b.name] ?? 0 }))
+    .filter(b => b.revenue > 0)
+    .sort((a, b) => b.revenue - a.revenue)
+  const brandThisMonthMax = brandThisMonthList[0]?.revenue ?? 1
+
+  // ── This-month profit ─────────────────────────────────────────────────────
+  const thisMonthProfit = thisMonthRevenue - thisMonthExpenses
+  const thisMonthMargin = thisMonthRevenue > 0 ? (thisMonthProfit / thisMonthRevenue) * 100 : null
 
   // ── Overdue Revenues (unpaid beyond overdue threshold) ───────────────────
   const overdueRevenues = revenues
@@ -280,282 +277,259 @@ export default async function DashboardPage({
   const activity = (recentActivity ?? []) as any[]
 
   return (
-    <main className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
+    <main className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
 
-        {/* Page title + range filter + date */}
-        <div className="flex items-center justify-between gap-2 flex-wrap">
+      {/* Page header */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div>
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">仪表盘</h1>
-          <div className="flex items-center gap-2 md:gap-3">
-            {/* Range filter */}
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-0.5">
+          <p className="text-sm text-gray-400 mt-0.5">{todayLabel()}</p>
+        </div>
+        <ExportButton />
+      </div>
+
+      {/* ── Row 1: KPI Cards (this month) ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* 本月收入 */}
+        <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
+          <div className="absolute left-0 inset-y-0 w-1 bg-[var(--color-success)] rounded-l-xl" />
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月实际收入</p>
+          <AnimatedNumber value={thisMonthRevenue} format="currency-aud" className="text-2xl font-bold text-[#16a34a]" />
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <MoMBadge pct={revenueMoM} />
+            <span className="text-xs text-gray-300">vs 上月</span>
+          </div>
+        </div>
+
+        {/* 本月支出 */}
+        <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
+          <div className="absolute left-0 inset-y-0 w-1 bg-[var(--color-danger)] rounded-l-xl" />
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月实际支出</p>
+          <AnimatedNumber value={thisMonthExpenses} format="currency-aud" className="text-2xl font-bold text-[#dc2626]" />
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <MoMBadge pct={expensesMoM} />
+            <span className="text-xs text-gray-300">vs 上月</span>
+          </div>
+        </div>
+
+        {/* 本月利润 */}
+        <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
+          <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${thisMonthProfit >= 0 ? 'bg-[var(--color-info)]' : 'bg-[var(--color-danger)]'}`} />
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月利润</p>
+          <AnimatedNumber value={thisMonthProfit} format="currency-aud"
+            className={`text-2xl font-bold ${thisMonthProfit >= 0 ? 'text-[#2563eb]' : 'text-[#dc2626]'}`} />
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <MoMBadge pct={profitMoM} />
+            {thisMonthMargin !== null && (
+              <span className="text-xs text-gray-400">毛利率 {thisMonthMargin.toFixed(1)}%</span>
+            )}
+          </div>
+        </div>
+
+        {/* 待处理 */}
+        <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
+          <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${totalPending > 0 ? 'bg-[var(--color-warning)]' : 'bg-gray-200'}`} />
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">待处理</p>
+          <AnimatedNumber value={totalPending}
+            className={`text-2xl font-bold ${totalPending > 0 ? 'text-[#f59e0b]' : 'text-gray-400'}`} />
+          <p className="text-xs text-gray-400 mt-1.5">
+            {pendingProjects.length} 待审批 · {pendingExpenses.length} 待付款
+          </p>
+        </div>
+      </div>
+
+      {/* ── Row 2: Charts (60/40) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Monthly Trend — 60% */}
+        <div className="lg:col-span-3 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">月度收支趋势</h2>
+              <p className="text-xs text-gray-400 mt-0.5">近6个月 · 收入 / 支出 / 利润</p>
+            </div>
+          </div>
+          <div className="px-4 py-4">
+            <TrendChart data={chartData} />
+          </div>
+        </div>
+
+        {/* Brand Revenue Bar — 40% */}
+        <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">品牌收入占比</h2>
+              <p className="text-xs text-gray-400 mt-0.5">已收款 · {RANGE_LABELS[range]}</p>
+            </div>
+            <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-0.5">
               {(['month', 'quarter', 'year'] as const).map((r) => (
-                <Link
-                  key={r}
-                  href={`?range=${r}`}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
-                    range === r
-                      ? 'bg-[#2B6CB0] text-white shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
+                <Link key={r} href={`?range=${r}`}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                    range === r ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+                  }`}>
                   {RANGE_LABELS[r]}
                 </Link>
               ))}
             </div>
-            <ExportButton />
-            <span className="text-sm text-gray-400">{todayLabel()}</span>
+          </div>
+          <div className="px-4 py-4">
+            <BrandBarChart data={brandBarData} />
           </div>
         </div>
+      </div>
 
-        {/* ── Row 1: KPI Cards ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-          {/* Total Revenue */}
-          <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
-            <div className="absolute left-0 inset-y-0 w-1 bg-[#38A169] rounded-l-xl" />
-            <p className="text-xs text-gray-400 mb-1">总收入（已收款）</p>
-            <AnimatedNumber value={totalRevenue} format="currency-aud" className="text-2xl font-bold text-[#38A169]" />
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <MoMBadge pct={revenueMoM} />
-              <span className="text-xs text-gray-300">vs 上月</span>
-            </div>
+      {/* ── Row 3: Bottom 3-column ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Col 1: 按品牌本月收入 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">按品牌收入</h2>
+            <p className="text-xs text-gray-400 mt-0.5">本月已收款</p>
           </div>
-
-          {/* Total Expenses */}
-          <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
-            <div className="absolute left-0 inset-y-0 w-1 bg-[#E53E3E] rounded-l-xl" />
-            <p className="text-xs text-gray-400 mb-1">总支出（已批准）</p>
-            <AnimatedNumber value={totalExpenses} format="currency-aud" className="text-2xl font-bold text-[#E53E3E]" />
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <MoMBadge pct={expensesMoM} />
-              <span className="text-xs text-gray-300">vs 上月</span>
-            </div>
-          </div>
-
-          {/* Total Profit */}
-          <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
-            <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${totalProfit >= 0 ? 'bg-[#2B6CB0]' : 'bg-[#E53E3E]'}`} />
-            <p className="text-xs text-gray-400 mb-1">总利润</p>
-            <AnimatedNumber value={totalProfit} format="currency-aud"
-              className={`text-2xl font-bold ${totalProfit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`} />
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <MoMBadge pct={profitMoM} />
-              {profitMargin !== null && (
-                <span className="text-xs text-gray-400">
-                  毛利率 {profitMargin.toFixed(1)}%
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Pending Items */}
-          <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
-            <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${totalPending > 0 ? 'bg-[#DD6B20]' : 'bg-gray-200'}`} />
-            <p className="text-xs text-gray-400 mb-1">待处理事项</p>
-            <AnimatedNumber value={totalPending}
-              className={`text-2xl font-bold ${totalPending > 0 ? 'text-[#DD6B20]' : 'text-gray-400'}`} />
-            <p className="text-xs text-gray-400 mt-1.5">
-              {pendingProjects.length} 个项目 · {pendingExpenses.length} 笔付款
-            </p>
-          </div>
-        </div>
-
-        {/* ── Row 2: Charts ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Monthly Trend */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">月度财务趋势</h2>
-              <p className="text-xs text-gray-400 mt-0.5">近6个月 · 收入 / 支出 / 利润</p>
-            </div>
-            <div className="px-4 py-4">
-              <TrendChart data={chartData} />
-            </div>
-          </div>
-
-          {/* Brand Revenue Bar */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">品牌收入对比</h2>
-              <p className="text-xs text-gray-400 mt-0.5">已收款 · {RANGE_LABELS[range]}</p>
-            </div>
-            <div className="px-4 py-4">
-              <BrandBarChart data={brandBarData} />
-            </div>
-          </div>
-        </div>
-
-        {/* ── Row 3: Alerts ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Pending Approvals */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-900">待审批事项</h2>
-                <p className="text-xs text-gray-400 mt-0.5">项目申请 + 付款请求</p>
-              </div>
-              {totalPending > 0 && (
-                <span className="text-xs font-semibold text-[#DD6B20] bg-[#DD6B20]/10 px-2.5 py-1 rounded-full border border-[#DD6B20]/25">
-                  {totalPending} 项待处理
-                </span>
-              )}
-            </div>
-
-            <div className="divide-y divide-gray-50">
-              {/* Pending Projects sub-section */}
-              {pendingProjects.length > 0 && (
-                <div>
-                  <div className="px-4 py-2 bg-gray-50/60">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      待审批项目 ({pendingProjects.length})
-                    </span>
-                  </div>
-                  <ActionItems projects={pendingProjects} />
-                </div>
-              )}
-
-              {/* Pending Expenses sub-section */}
-              {pendingExpenses.length > 0 && (
-                <div>
-                  <div className="px-4 py-2 bg-gray-50/60">
-                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      待审批付款 ({pendingExpenses.length})
-                    </span>
-                  </div>
-                  <PendingExpenses expenses={pendingExpenses} approverRole={role} />
-                </div>
-              )}
-
-              {totalPending === 0 && (
-                <div className="px-4 py-8 text-center text-gray-400 text-sm">
-                  暂无待处理事项 ✓
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Overdue Revenues */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-900">逾期未收款</h2>
-                <p className="text-xs text-gray-400 mt-0.5">开票超过 {overdueDays} 天未收款</p>
-              </div>
-              {overdueRevenues.length > 0 && (
-                <span className="text-xs font-semibold text-[#E53E3E] bg-[#E53E3E]/10 px-2.5 py-1 rounded-full border border-[#E53E3E]/25">
-                  {overdueRevenues.length} 条
-                </span>
-              )}
-            </div>
-
-            {overdueRevenues.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-400 text-sm">
-                暂无逾期未收款 ✓
-              </div>
+          <div className="px-5 py-4 space-y-3">
+            {brandThisMonthList.length === 0 ? (
+              <p className="text-sm text-gray-400 py-4 text-center">本月暂无收入记录</p>
             ) : (
-              <div className="divide-y divide-gray-50 max-h-[360px] overflow-y-auto">
-                {overdueRevenues.map((r: any) => {
+              brandThisMonthList.map((b) => (
+                <div key={b.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <Link
+                      href={`/projects?brand=${encodeURIComponent(b.name)}`}
+                      className="text-sm font-medium text-gray-700 hover:text-[#2563eb] transition-colors"
+                    >
+                      {b.name}
+                    </Link>
+                    <span className="text-sm font-semibold text-gray-900">{fmt(b.revenue)}</span>
+                  </div>
+                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-[#2563eb] rounded-full transition-all"
+                      style={{ width: `${Math.round((b.revenue / brandThisMonthMax) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Col 2: 最近项目动态 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h2 className="font-semibold text-gray-900">最近项目动态</h2>
+            <p className="text-xs text-gray-400 mt-0.5">审批记录</p>
+          </div>
+          {activity.length === 0 ? (
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无操作记录</div>
+          ) : (
+            <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
+              {activity.slice(0, 8).map((a: any) => {
+                const isApproved = a.action === 'approved'
+                const proj = a.projects
+                const approver = a.profiles?.full_name ?? '未知'
+                const timeStr = new Date(a.created_at).toLocaleString('zh-CN', {
+                  month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+                })
+                return (
+                  <div key={a.id} className="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                    <div className="flex items-start gap-2.5">
+                      <span className={`mt-1.5 flex-shrink-0 w-1.5 h-1.5 rounded-full ${isApproved ? 'bg-[#16a34a]' : 'bg-[#dc2626]'}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-medium text-gray-700">{approver}</span>
+                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${isApproved ? 'bg-[#16a34a]/10 text-[#16a34a]' : 'bg-[#dc2626]/10 text-[#dc2626]'}`}>
+                            {ACTION_LABELS[a.action] ?? a.action}
+                          </span>
+                          <span className="text-xs text-gray-500 truncate">{proj?.project_code ?? proj?.name ?? '—'}</span>
+                        </div>
+                        {a.comment && <p className="text-xs text-gray-400 mt-0.5 truncate">{a.comment}</p>}
+                        <p className="text-[11px] text-gray-300 mt-0.5">{timeStr}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Col 3: 待处理事项 */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-gray-900">待处理事项</h2>
+              <p className="text-xs text-gray-400 mt-0.5">审批 + 逾期</p>
+            </div>
+            {totalPending > 0 && (
+              <span className="text-xs font-semibold text-[#f59e0b] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full border border-[#f59e0b]/25">
+                {totalPending}
+              </span>
+            )}
+          </div>
+          <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
+            {/* Pending Projects */}
+            {pendingProjects.length > 0 && (
+              <div>
+                <div className="px-4 py-2 bg-gray-50/60">
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    待审批项目 ({pendingProjects.length})
+                  </span>
+                </div>
+                <ActionItems projects={pendingProjects} />
+              </div>
+            )}
+            {/* Pending Expenses */}
+            {pendingExpenses.length > 0 && (
+              <div>
+                <div className="px-4 py-2 bg-gray-50/60">
+                  <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                    待审批付款 ({pendingExpenses.length})
+                  </span>
+                </div>
+                <PendingExpenses expenses={pendingExpenses} approverRole={role} />
+              </div>
+            )}
+            {/* Overdue Revenues */}
+            {overdueRevenues.length > 0 && (
+              <div>
+                <div className="px-4 py-2 bg-gray-50/60">
+                  <span className="text-[10px] font-semibold text-[#dc2626] uppercase tracking-wider">
+                    逾期未收款 ({overdueRevenues.length})
+                  </span>
+                </div>
+                {overdueRevenues.slice(0, 4).map((r: any) => {
                   const proj = r.projects
                   return (
-                    <div key={r.id} className="px-4 py-3.5 hover:bg-gray-50/50 transition-colors">
-                      <div className="flex items-start justify-between gap-3">
+                    <div key={r.id} className="px-4 py-3 hover:bg-gray-50/50 transition-colors">
+                      <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <span className="font-mono text-xs text-gray-400">
-                              {proj?.project_code ?? proj?.name ?? '—'}
-                            </span>
-                            <span className="text-xs font-medium text-[#E53E3E] bg-[#E53E3E]/10 px-1.5 py-0.5 rounded border border-[#E53E3E]/20">
-                              逾期 {r.daysPast} 天
-                            </span>
-                          </div>
                           <p className="text-sm font-medium text-gray-900 truncate">{r.description}</p>
-                          {r.invoice_number && (
-                            <p className="text-xs text-gray-400 mt-0.5">发票号：{r.invoice_number}</p>
-                          )}
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-semibold text-gray-800">{fmt(Number(r.amount))}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{r.issue_date}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Row 4: Overview ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Project Status Pie */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">项目状态分布</h2>
-              <p className="text-xs text-gray-400 mt-0.5">共 {projects.length} 个项目</p>
-            </div>
-            <div className="px-4 py-4">
-              <ProjectStatusPie data={statusData} />
-            </div>
-          </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-semibold text-gray-900">最近项目动态</h2>
-              <p className="text-xs text-gray-400 mt-0.5">审批记录</p>
-            </div>
-
-            {activity.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-400 text-sm">
-                暂无操作记录
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-50 max-h-[360px] overflow-y-auto">
-                {activity.map((a: any) => {
-                  const isApproved = a.action === 'approved'
-                  const proj = a.projects
-                  const approver = a.profiles?.full_name ?? '未知'
-                  const timeAgo = new Date(a.created_at).toLocaleString('zh-CN', {
-                    month: '2-digit', day: '2-digit',
-                    hour: '2-digit', minute: '2-digit',
-                  })
-                  return (
-                    <div key={a.id} className="px-4 py-3 hover:bg-gray-50/50 transition-colors">
-                      <div className="flex items-start gap-3">
-                        <span
-                          className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${
-                            isApproved ? 'bg-[#38A169]' : 'bg-[#E53E3E]'
-                          }`}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-medium text-gray-700">{approver}</span>
-                            <span
-                              className={`text-xs font-medium px-1.5 py-0.5 rounded ${
-                                isApproved
-                                  ? 'bg-[#38A169]/10 text-[#38A169]'
-                                  : 'bg-[#E53E3E]/10 text-[#E53E3E]'
-                              }`}
-                            >
-                              {ACTION_LABELS[a.action] ?? a.action}
-                            </span>
-                            <span className="text-xs text-gray-500 truncate">
-                              {proj?.project_code ?? proj?.name ?? '未知项目'}
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-xs text-gray-400">{proj?.project_code ?? '—'}</span>
+                            <span className="text-[11px] font-medium text-[#dc2626] bg-[#dc2626]/10 px-1.5 py-0.5 rounded">
+                              逾期 {r.daysPast}天
                             </span>
                           </div>
-                          {a.comment && (
-                            <p className="text-xs text-gray-400 mt-0.5 truncate">{a.comment}</p>
-                          )}
-                          <p className="text-xs text-gray-300 mt-0.5">{timeAgo}</p>
                         </div>
+                        <span className="text-sm font-semibold text-gray-800 shrink-0">{fmt(Number(r.amount))}</span>
                       </div>
                     </div>
                   )
                 })}
+                {overdueRevenues.length > 4 && (
+                  <div className="px-4 py-2 text-center">
+                    <span className="text-xs text-gray-400">还有 {overdueRevenues.length - 4} 条…</span>
+                  </div>
+                )}
               </div>
+            )}
+            {totalPending === 0 && overdueRevenues.length === 0 && (
+              <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无待处理事项 ✓</div>
             )}
           </div>
         </div>
+
+      </div>
 
     </main>
   )
