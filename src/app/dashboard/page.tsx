@@ -1,6 +1,6 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import AppHeader from '@/components/app-header'
+
 import ActionItems, { type PendingProject } from './action-items'
 import PendingExpenses, { type PendingExpense } from './pending-expenses'
 import TrendChart, { type MonthlyDataPoint } from './trend-chart'
@@ -280,10 +280,7 @@ export default async function DashboardPage({
   const activity = (recentActivity ?? []) as any[]
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title="Dashboard" />
-
-      <main className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
+    <main className="max-w-6xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-5">
 
         {/* Page title + range filter + date */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -560,7 +557,6 @@ export default async function DashboardPage({
           </div>
         </div>
 
-      </main>
-    </div>
+    </main>
   )
 }

@@ -1,7 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AppHeader from '@/components/app-header'
+
 import SettingsForm from './settings-form'
 import OverdueForm from './overdue-form'
 import ApproverForm, { type BrandApproverRow } from './approver-form'
@@ -70,9 +70,7 @@ export default async function SettingsPage() {
   }))
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title="审批设置" />
-      <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+    <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
         <h1 className="text-2xl font-bold text-gray-900">审批设置</h1>
 
         {/* Section 1: Approval Thresholds */}
@@ -141,7 +139,6 @@ export default async function SettingsPage() {
             <p className="text-sm text-gray-400">加载失败</p>
           )}
         </section>
-      </main>
-    </div>
+    </main>
   )
 }

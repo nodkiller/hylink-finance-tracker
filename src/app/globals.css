@@ -48,22 +48,33 @@
 }
 
 :root {
-  /* Brand palette — modern SaaS finance (Xero/QuickBooks style) */
-  --brand-primary: #1A365D;     /* deep navy — brand title, headings */
-  --brand-mid:     #2B6CB0;     /* medium blue — interactive, nav active */
-  --brand-accent:  #3182CE;     /* accent blue — buttons, highlights */
-  --brand-green:   #38A169;     /* success — income, profit, approved */
-  --brand-red:     #E53E3E;     /* danger — expenses, loss, rejected */
-  --brand-amber:   #DD6B20;     /* warning — pending, due soon */
+  /* Brand palette — modern SaaS finance */
+  --brand-primary: #1e40af;     /* deep blue — primary actions, links */
+  --brand-mid:     #2563eb;     /* medium blue — interactive, nav active */
+  --brand-accent:  #3b82f6;     /* accent blue — buttons, highlights */
+  --brand-green:   #16a34a;     /* success — income, profit, paid */
+  --brand-red:     #dc2626;     /* danger — expenses, loss, rejected */
+  --brand-amber:   #f59e0b;     /* warning — pending, due soon */
   --brand-wood:    #B9A284;     /* decorative accent */
 
-  --background: oklch(0.984 0.003 220);  /* #F7FAFC */
+  /* Semantic colors */
+  --color-success:  #16a34a;
+  --color-warning:  #f59e0b;
+  --color-danger:   #dc2626;
+  --color-info:     #2563eb;
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-muted:     #94a3b8;
+  --color-border:   #e2e8f0;
+  --sidebar-width:  220px;
+
+  --background: oklch(0.984 0.003 220);  /* #f8fafc */
   --foreground: oklch(0.158 0.012 243);  /* #1A202C */
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.158 0.012 243);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.158 0.012 243);
-  --primary: oklch(0.535 0.175 237);     /* #3182CE — button accent */
+  --primary: oklch(0.457 0.231 264);     /* #2563eb — button accent */
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -136,7 +147,7 @@
   body {
     @apply text-foreground;
     font-family: var(--font-inter), var(--font-noto-sc), system-ui, sans-serif;
-    color: #1A202C;
+    color: var(--color-text-primary, #0f172a);
     background-color: transparent;
   }
   /* Page fade-in — triggers on every navigation since <main> remounts */

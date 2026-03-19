@@ -1,7 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AppHeader from '@/components/app-header'
+
 import BrandsClient, { type BrandStat } from './brands-client'
 
 export default async function AdminBrandsPage() {
@@ -68,11 +68,8 @@ export default async function AdminBrandsPage() {
   })
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title="品牌管理" />
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <BrandsClient brands={brandStats} />
-      </main>
-    </div>
+    <main className="max-w-5xl mx-auto px-6 py-8">
+      <BrandsClient brands={brandStats} />
+    </main>
   )
 }

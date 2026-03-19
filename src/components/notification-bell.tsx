@@ -23,9 +23,11 @@ const TYPE_ICON: Record<string, string> = {
 export default function NotificationBell({
   initialUnread,
   initialNotifications,
+  dark = false,
 }: {
   initialUnread: number
   initialNotifications: NotificationItem[]
+  dark?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState(initialNotifications)
@@ -67,7 +69,7 @@ export default function NotificationBell({
     <div className="relative">
       <button
         onClick={() => setOpen(v => !v)}
-        className="relative p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+        className={`relative p-2 rounded-lg transition-colors ${dark ? 'text-white/50 hover:text-white/80 hover:bg-white/10' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
         aria-label="通知"
       >
         <Bell size={18} />

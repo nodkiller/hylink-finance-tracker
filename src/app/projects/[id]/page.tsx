@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import AppHeader from '@/components/app-header'
+
 import RevenueSection from './revenue-section'
 import ExpenseSection from './expense-section'
 import ReconcilePanel from './reconcile-panel'
@@ -221,10 +221,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   ]
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title={p.name} />
-
-      <main className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
+    <main className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <a href="/projects" className="hover:text-gray-600 transition-colors">项目列表</a>
@@ -381,7 +378,6 @@ export default async function ProjectDetailPage({ params }: Props) {
 
         {/* Project Timeline */}
         <ProjectTimeline events={timelineEvents} />
-      </main>
-    </div>
+    </main>
   )
 }

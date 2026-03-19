@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
-import AppHeader from '@/components/app-header'
+
 import ProfileForm from './profile-form'
 
 export default async function ProfilePage() {
@@ -22,9 +22,7 @@ export default async function ProfilePage() {
     .single<{ full_name: string | null; role: string; created_at: string }>()
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title="个人资料" />
-      <main className="max-w-2xl mx-auto px-6 py-8 space-y-2">
+    <main className="max-w-2xl mx-auto px-6 py-8 space-y-2">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-900">个人资料</h1>
           <p className="text-sm text-gray-500 mt-1">管理您的账号信息和登录凭据。</p>
@@ -35,7 +33,6 @@ export default async function ProfilePage() {
           role={profile?.role ?? 'Staff'}
           createdAt={profile?.created_at ?? user.created_at}
         />
-      </main>
-    </div>
+    </main>
   )
 }

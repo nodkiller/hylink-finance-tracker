@@ -1,7 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import AppHeader from '@/components/app-header'
+
 import UsersTable, { type UserRow } from './users-table'
 import InviteUserDialog from './invite-user-dialog'
 
@@ -58,10 +58,7 @@ export default async function AdminUsersPage() {
   const suspendedCount = users.filter(u => u.is_suspended).length
 
   return (
-    <div className="min-h-screen">
-      <AppHeader title="用户管理" />
-
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
+    <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-start justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">用户管理</h1>
@@ -87,7 +84,6 @@ export default async function AdminUsersPage() {
         </div>
 
         <UsersTable users={users} />
-      </main>
-    </div>
+    </main>
   )
 }
