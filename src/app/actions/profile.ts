@@ -80,3 +80,26 @@ export async function updatePassword(
 
   return { success: 'profile.passwordUpdated' }
 }
+
+export async function saveBankAccount(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const user = await getUser()
+  if (!user) return { error: 'errors.notLoggedIn' }
+
+  const bank_bsb = (formData.get('bank_bsb') as string || '').trim()
+  const bank_account = (formData.get('bank_account') as string || '').trim()
+  const bank_account_name = (formData.get('bank_account_name') as string || '').trim()
+
+  const db = adminClient()
+  const { error } = await db
+    .from('profiles')
+    .update({ bank_bsb, bank_account, bank_account_name })
+    .eq('id', user.id)
+
+  if (error) return { error: error.message }
+
+  revalidatePath('/profile')
+  return { success: 'profile.bankAccountUpdated' }
+}

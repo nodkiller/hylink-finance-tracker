@@ -69,6 +69,8 @@ export interface PaymentExpense {
   project_name?: string
   brand_name?: string
   approver_name?: string
+  last_email_sent_at?: string | null
+  email_sent_count?: number
 }
 
 export interface PaymentCalendarFilters {
@@ -83,6 +85,7 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
     .select(`
       id, payee, description, invoice_number, amount, status,
       payment_date, payment_due_date, created_at, project_id,
+      last_email_sent_at, email_sent_count,
       projects!inner(name, brand_id, brands(name)),
       profiles:approver_id(full_name)
     `)
@@ -163,6 +166,8 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
       project_name: project?.name,
       brand_name: project?.brands?.name,
       approver_name: approver?.full_name,
+      last_email_sent_at: row.last_email_sent_at,
+      email_sent_count: row.email_sent_count ?? 0,
     })
   }
 

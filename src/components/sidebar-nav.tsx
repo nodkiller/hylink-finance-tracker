@@ -97,7 +97,7 @@ export default function SidebarNav({
     { href: '/projects', label: t('sidebar.projects'), icon: FolderOpen },
     { href: '/expenses', label: t('sidebar.expenses'), icon: CreditCard, comingSoon: true },
     { href: '/payments', label: t('sidebar.payments'), icon: Mail },
-    { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt, comingSoon: true },
+    { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt },
     ...(hasReports ? [{ href: '/reports', label: t('sidebar.reports'), icon: BarChart2 }] : []),
   ]
 

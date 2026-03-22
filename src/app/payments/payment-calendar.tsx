@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslation } from '@/i18n/context'
 import type { PaymentGroup } from '@/lib/payments'
 import BatchActions from './batch-actions'
-import { CheckSquare, Square, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { CheckSquare, Square, ChevronLeft, ChevronRight, Download, Mail } from 'lucide-react'
 
 interface Props {
   groups: PaymentGroup[]
@@ -289,6 +289,12 @@ export default function PaymentCalendar({ groups, brands, locale, error, current
                               <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[expense.status] || ''}`}>
                                 {t(`status.${expense.status === 'Pending Approval' ? 'pendingApproval' : expense.status === 'Pending Super Approval' ? 'pendingSuperApproval' : expense.status.toLowerCase()}`)}
                               </span>
+                              {expense.last_email_sent_at && (
+                                <div className="flex items-center justify-center gap-0.5 mt-1 text-[10px] text-gray-400" title={t('paymentEmail.alreadySent').replace('{date}', new Date(expense.last_email_sent_at).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-AU', { month: 'short', day: 'numeric' }))}>
+                                  <Mail size={10} />
+                                  <span>{new Date(expense.last_email_sent_at).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-AU', { month: 'short', day: 'numeric' })}</span>
+                                </div>
+                              )}
                             </td>
                           </tr>
                         )
@@ -325,6 +331,12 @@ export default function PaymentCalendar({ groups, brands, locale, error, current
                             <span className={`inline-flex mt-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${STATUS_COLORS[expense.status] || ''}`}>
                               {t(`status.${expense.status === 'Pending Approval' ? 'pendingApproval' : expense.status.toLowerCase()}`)}
                             </span>
+                            {expense.last_email_sent_at && (
+                              <div className="flex items-center gap-0.5 mt-1 text-[10px] text-gray-400">
+                                <Mail size={9} />
+                                <span>{new Date(expense.last_email_sent_at).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-AU', { month: 'short', day: 'numeric' })}</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
