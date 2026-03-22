@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select'
 import { ChevronDown, Check } from 'lucide-react'
 import { useToast } from '@/components/toast'
+import { useTranslation } from '@/i18n/context'
 
 interface Brand {
   id: string
@@ -34,10 +35,11 @@ interface Props {
 
 type State = { error: string } | { success: boolean } | undefined
 
-const TYPE_INFO: Record<string, string> = {
-  'Retainer': '月度固定服务费合同，持续按月计费',
-  'KOL':      '网红/博主推广合作，按效果或固定费用计费',
-  'Ad-hoc':   '临时性项目，单次报价按需执行',
+// TYPE_INFO keys will be resolved at render time via t()
+const TYPE_INFO_KEYS: Record<string, string> = {
+  'Retainer': 'newProject.typeRetainerDesc',
+  'KOL':      'newProject.typeKOLDesc',
+  'Ad-hoc':   'newProject.typeAdhocDesc',
 }
 
 type FieldKey = 'brand' | 'name' | 'type' | 'revenue'
@@ -45,18 +47,18 @@ type FieldErrors = Partial<Record<FieldKey, string>>
 
 function validateField(field: FieldKey, value: string): string | undefined {
   switch (field) {
-    case 'brand':   return !value ? '请选择客户品牌' : undefined
+    case 'brand':   return !value ? 'errors.selectBrand' : undefined
     case 'name': {
       const v = value.trim()
-      if (!v) return '请填写项目名称'
-      if (v.length < 2) return '项目名称至少2个字符'
+      if (!v) return 'errors.projectNameRequired'
+      if (v.length < 2) return 'errors.projectNameMin2'
       return undefined
     }
-    case 'type':    return !value ? '请选择项目类型' : undefined
+    case 'type':    return !value ? 'errors.selectType' : undefined
     case 'revenue': {
       const n = parseFloat(value)
-      if (!value) return '请填写预估收入'
-      if (isNaN(n) || n <= 0) return '请输入有效金额（大于 0）'
+      if (!value) return 'errors.fillEstimatedRevenue'
+      if (isNaN(n) || n <= 0) return 'errors.validPositiveAmount'
       return undefined
     }
   }
@@ -69,6 +71,7 @@ function formatAUD(raw: string): string {
 }
 
 export default function NewProjectDialog({ brands }: Props) {
+  const { t } = useTranslation()
   const [open, setOpen]               = useState(false)
   const [brandId, setBrandId]         = useState('')
   const [type, setType]               = useState('')
@@ -128,7 +131,7 @@ export default function NewProjectDialog({ brands }: Props) {
     setErrors(newErrors)
     setTouched({ brand: true, name: true, type: true, revenue: true })
     if (Object.values(newErrors).some(Boolean)) {
-      return { error: '请检查上方标红的必填字段' }
+      return { error: 'newProject.checkRequired' }
     }
 
     formData.set('brand_id', brandId)
@@ -138,7 +141,7 @@ export default function NewProjectDialog({ brands }: Props) {
     if (result && 'success' in result && result.success) {
       setOpen(false)
       resetForm()
-      toast('项目申请已提交，等待审批', 'success')
+      toast(t('newProject.projectSubmittedToast'), 'success')
       router.refresh()
     }
     return result
@@ -148,19 +151,19 @@ export default function NewProjectDialog({ brands }: Props) {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} size="sm">+ 新项目申请</Button>
+      <Button onClick={() => setOpen(true)} size="sm">{t('newProject.newProjectButton')}</Button>
 
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm() }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>新项目申请</DialogTitle>
+            <DialogTitle>{t('newProject.title')}</DialogTitle>
           </DialogHeader>
 
           <form action={formAction} className="space-y-4 pt-2">
 
             {/* ── 品牌（可搜索下拉）──────────────────────────────── */}
             <div className="space-y-1.5">
-              <Label>品牌 <span className="text-red-500">*</span></Label>
+              <Label>{t('projects.brand')} <span className="text-red-500">*</span></Label>
               <div ref={brandRef} className="relative">
                 <button
                   type="button"
@@ -172,7 +175,7 @@ export default function NewProjectDialog({ brands }: Props) {
                       : 'border-input hover:border-gray-400'
                   } ${brandId ? 'text-gray-900' : 'text-gray-400'}`}
                 >
-                  <span>{selectedBrandName || '选择客户品牌'}</span>
+                  <span>{selectedBrandName || t('newProject.selectBrand')}</span>
                   <ChevronDown
                     size={14}
                     className={`text-gray-400 flex-shrink-0 transition-transform duration-150 ${brandOpen ? 'rotate-180' : ''}`}
@@ -187,13 +190,13 @@ export default function NewProjectDialog({ brands }: Props) {
                         type="text"
                         value={brandSearch}
                         onChange={e => setBrandSearch(e.target.value)}
-                        placeholder="搜索品牌..."
+                        placeholder={t('newProject.searchBrand')}
                         className="w-full text-sm outline-none placeholder:text-gray-400"
                       />
                     </div>
                     <div className="max-h-44 overflow-y-auto py-1">
                       {filteredBrands.length === 0 ? (
-                        <p className="px-3 py-2.5 text-sm text-gray-400 text-center">无匹配品牌</p>
+                        <p className="px-3 py-2.5 text-sm text-gray-400 text-center">{t('newProject.noMatchingBrands')}</p>
                       ) : filteredBrands.map(b => (
                         <button
                           key={b.id}
@@ -219,17 +222,17 @@ export default function NewProjectDialog({ brands }: Props) {
                 )}
               </div>
               {showError('brand') && (
-                <p className="text-xs text-red-500">{showError('brand')}</p>
+                <p className="text-xs text-red-500">{t(showError('brand')!)}</p>
               )}
             </div>
 
             {/* ── 项目名称 ───────────────────────────────────────── */}
             <div className="space-y-1.5">
-              <Label htmlFor="proj-name">项目名称 <span className="text-red-500">*</span></Label>
+              <Label htmlFor="proj-name">{t('newProject.projectName')} <span className="text-red-500">*</span></Label>
               <Input
                 id="proj-name"
                 name="name"
-                placeholder="例：五月KOL推广"
+                placeholder={t('newProject.projectNamePlaceholder')}
                 value={nameValue}
                 onChange={e => {
                   setNameValue(e.target.value)
@@ -241,41 +244,41 @@ export default function NewProjectDialog({ brands }: Props) {
                 className={showError('name') ? 'border-red-400 focus-visible:ring-red-200' : ''}
               />
               {showError('name') && (
-                <p className="text-xs text-red-500">{showError('name')}</p>
+                <p className="text-xs text-red-500">{t(showError('name')!)}</p>
               )}
             </div>
 
             {/* ── 项目类型（带说明）─────────────────────────────── */}
             <div className="space-y-1.5">
-              <Label>项目类型 <span className="text-red-500">*</span></Label>
+              <Label>{t('newProject.projectType')} <span className="text-red-500">*</span></Label>
               <Select
                 value={type}
                 onValueChange={v => { if (v) { setType(v); touchField('type', v) } }}
               >
                 <SelectTrigger className={showError('type') ? 'border-red-400' : ''}>
-                  <SelectValue placeholder="选择项目类型" />
+                  <SelectValue placeholder={t('newProject.selectType')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(TYPE_INFO).map(([val, desc]) => (
+                  {Object.entries(TYPE_INFO_KEYS).map(([val, descKey]) => (
                     <SelectItem key={val} value={val} className="py-2.5">
                       <div>
                         <p className="font-medium text-sm leading-tight">{val}</p>
-                        <p className="text-xs text-gray-400 mt-0.5 leading-snug">{desc}</p>
+                        <p className="text-xs text-gray-400 mt-0.5 leading-snug">{t(descKey)}</p>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {showError('type') ? (
-                <p className="text-xs text-red-500">{showError('type')}</p>
+                <p className="text-xs text-red-500">{t(showError('type')!)}</p>
               ) : type ? (
-                <p className="text-xs text-gray-400">{TYPE_INFO[type]}</p>
+                <p className="text-xs text-gray-400">{t(TYPE_INFO_KEYS[type])}</p>
               ) : null}
             </div>
 
             {/* ── 预估收入（千分位格式化）───────────────────────── */}
             <div className="space-y-1.5">
-              <Label htmlFor="proj-revenue">预估收入 (AUD) <span className="text-red-500">*</span></Label>
+              <Label htmlFor="proj-revenue">{t('newProject.estimatedRevenue')} <span className="text-red-500">*</span></Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none select-none">
                   A$
@@ -307,25 +310,25 @@ export default function NewProjectDialog({ brands }: Props) {
               {/* Hidden field carries the raw numeric value to the server action */}
               <input type="hidden" name="estimated_revenue" value={revenueRaw} />
               {showError('revenue') ? (
-                <p className="text-xs text-red-500">{showError('revenue')}</p>
+                <p className="text-xs text-red-500">{t(showError('revenue')!)}</p>
               ) : (
-                <p className="text-xs text-gray-500">SOP 要求申请时填写，供 Controller 审批参考</p>
+                <p className="text-xs text-gray-500">{t('newProject.sopNote')}</p>
               )}
             </div>
 
             {/* ── 备注 ──────────────────────────────────────────── */}
             <div className="space-y-1.5">
-              <Label htmlFor="proj-notes">备注</Label>
+              <Label htmlFor="proj-notes">{t('newProject.notes')}</Label>
               <Textarea
                 id="proj-notes"
                 name="notes"
-                placeholder="可选填补充说明..."
+                placeholder={t('newProject.notesPlaceholder')}
                 rows={3}
               />
             </div>
 
             {state && 'error' in state && (
-              <p className="text-sm text-red-600">{state.error}</p>
+              <p className="text-sm text-red-600">{t(state.error)}</p>
             )}
 
             <div className="flex gap-2 justify-end pt-1">
@@ -335,10 +338,10 @@ export default function NewProjectDialog({ brands }: Props) {
                 onClick={() => { setOpen(false); resetForm() }}
                 disabled={pending}
               >
-                取消
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={pending}>
-                {pending ? '提交中...' : '提交申请'}
+                {pending ? t('common.submitting') : t('newProject.submit')}
               </Button>
             </div>
           </form>

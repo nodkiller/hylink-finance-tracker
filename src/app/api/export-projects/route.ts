@@ -39,7 +39,7 @@ export async function GET() {
     expenseMap.set(e.project_id, (expenseMap.get(e.project_id) ?? 0) + Number(e.amount))
   }
 
-  const headers = ['项目代码', '品牌', '项目名称', '类型', '预估收入', '实际总收入', '实际总支出', '利润', '状态']
+  const headers = ['Project Code', 'Brand', 'Project Name', 'Type', 'Est. Revenue', 'Actual Revenue', 'Actual Expenses', 'Profit', 'Status']
   const rows = (projects ?? []).map((p: any) => {
     const rev = revenueMap.get(p.id) ?? 0
     const exp = expenseMap.get(p.id) ?? 0

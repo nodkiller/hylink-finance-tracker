@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { getServerT } from '@/i18n/use-server-t'
 import { logout } from '@/app/actions/auth'
 import { Button } from '@/components/ui/button'
 import NewProjectDialog from '@/components/new-project-dialog'
@@ -23,6 +24,7 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 export default async function AppHeader({ title }: Props) {
+  const t = await getServerT()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -99,7 +101,7 @@ export default async function AppHeader({ title }: Props) {
         </Link>
 
         <form action={logout} className="hidden md:block">
-          <Button variant="outline" size="sm" type="submit" className="text-xs">退出</Button>
+          <Button variant="outline" size="sm" type="submit" className="text-xs">{t('common.logout')}</Button>
         </form>
       </div>
     </header>

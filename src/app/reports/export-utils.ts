@@ -40,7 +40,7 @@ export async function exportToPDF(
   doc.text(title, 14, 16)
   doc.setFontSize(9)
   doc.setTextColor(120, 120, 120)
-  doc.text(`生成时间：${new Date().toLocaleString('zh-CN')}`, 14, 22)
+  doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 22)
 
   autoTable(doc, {
     startY: 28,

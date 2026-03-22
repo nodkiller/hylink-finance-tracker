@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { logout } from '@/app/actions/auth'
 import {
   LayoutDashboard,
@@ -72,6 +73,7 @@ export default function NavBar({
   userName,
   userRole,
 }: NavBarProps) {
+  const { t } = useTranslation()
   const pathname = usePathname()
   const [adminOpen, setAdminOpen] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -110,9 +112,9 @@ export default function NavBar({
   }
 
   const adminItems: { href: string; label: string; Icon: IconComponent }[] = []
-  if (hasUserAdmin) adminItems.push({ href: '/admin/users', label: '用户管理', Icon: Users })
-  if (hasAdminMenu) adminItems.push({ href: '/admin/brands', label: '品牌管理', Icon: Tag })
-  if (hasSettings) adminItems.push({ href: '/admin/settings', label: '审批设置', Icon: SlidersHorizontal })
+  if (hasUserAdmin) adminItems.push({ href: '/admin/users', label: t('sidebar.users'), Icon: Users })
+  if (hasAdminMenu) adminItems.push({ href: '/admin/brands', label: t('sidebar.brands'), Icon: Tag })
+  if (hasSettings) adminItems.push({ href: '/admin/settings', label: t('sidebar.settings'), Icon: SlidersHorizontal })
 
   const isAdminActive = pathname.startsWith('/admin')
 
@@ -123,7 +125,7 @@ export default function NavBar({
         <button
           onClick={() => setMenuOpen(v => !v)}
           className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-100 transition-colors"
-          aria-label="导航菜单"
+          aria-label={t('common.navMenu')}
         >
           {menuOpen ? <X size={18} /> : <Menu size={18} />}
         </button>
@@ -134,17 +136,17 @@ export default function NavBar({
             {hasDashboard && (
               <Link href="/dashboard" onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${isActive('/dashboard') ? 'bg-[#2B6CB0]/[0.07] text-[#2B6CB0] font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                <LayoutDashboard size={14} />仪表盘
+                <LayoutDashboard size={14} />{t('sidebar.dashboard')}
               </Link>
             )}
             <Link href="/projects" onClick={() => setMenuOpen(false)}
               className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${isActive('/projects') ? 'bg-[#2B6CB0]/[0.07] text-[#2B6CB0] font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-              <FolderOpen size={14} />项目管理
+              <FolderOpen size={14} />{t('sidebar.projects')}
             </Link>
             {hasReports && (
               <Link href="/reports" onClick={() => setMenuOpen(false)}
                 className={`flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors ${isActive('/reports') ? 'bg-[#2B6CB0]/[0.07] text-[#2B6CB0] font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-                <BarChart2 size={14} />报表中心
+                <BarChart2 size={14} />{t('sidebar.reports')}
               </Link>
             )}
             {adminItems.map(({ href, label, Icon }) => (
@@ -168,7 +170,7 @@ export default function NavBar({
                 <form action={logout}>
                   <button type="submit"
                     className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-[#E53E3E] hover:bg-red-50 transition-colors">
-                    <LogOut size={14} />退出登录
+                    <LogOut size={14} />{t('common.logout')}
                   </button>
                 </form>
               </div>
@@ -181,17 +183,17 @@ export default function NavBar({
       <nav className="hidden md:flex items-center gap-0.5">
         {hasDashboard && (
           <NavLink href="/dashboard" icon={LayoutDashboard} active={isActive('/dashboard')}>
-            仪表盘
+            {t('sidebar.dashboard')}
           </NavLink>
         )}
 
         <NavLink href="/projects" icon={FolderOpen} active={isActive('/projects')}>
-          项目管理
+          {t('sidebar.projects')}
         </NavLink>
 
         {hasReports && (
           <NavLink href="/reports" icon={BarChart2} active={isActive('/reports')}>
-            报表中心
+            {t('sidebar.reports')}
           </NavLink>
         )}
 
@@ -206,7 +208,7 @@ export default function NavBar({
               }`}
             >
               <Settings2 size={14} />
-              管理后台
+              {t('sidebar.adminPanel')}
               <ChevronDown
                 size={12}
                 className={`transition-transform duration-150 ${adminOpen ? 'rotate-180' : ''}`}

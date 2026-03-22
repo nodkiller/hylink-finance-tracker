@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from 'react'
 import { Bell } from 'lucide-react'
+import { useTranslation } from '@/i18n/context'
 import {
   markNotificationRead,
   markAllNotificationsRead,
@@ -29,6 +30,7 @@ export default function NotificationBell({
   initialNotifications: NotificationItem[]
   dark?: boolean
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [notifications, setNotifications] = useState(initialNotifications)
   const [unread, setUnread] = useState(initialUnread)
@@ -70,7 +72,7 @@ export default function NotificationBell({
       <button
         onClick={() => setOpen(v => !v)}
         className={`relative p-2 rounded-lg transition-colors ${dark ? 'text-white/50 hover:text-white/80 hover:bg-white/10' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
-        aria-label="通知"
+        aria-label={t('notifications.title')}
       >
         <Bell size={18} />
         {unread > 0 && (
@@ -86,10 +88,10 @@ export default function NotificationBell({
           <div className="absolute right-0 top-full mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-sm text-gray-900">通知</span>
+                <span className="font-semibold text-sm text-gray-900">{t('notifications.title')}</span>
                 {unread > 0 && (
                   <span className="text-xs bg-[#E53E3E]/10 text-[#E53E3E] px-1.5 py-0.5 rounded-full font-medium">
-                    {unread} 未读
+                    {unread} {t('notifications.unread')}
                   </span>
                 )}
               </div>
@@ -98,7 +100,7 @@ export default function NotificationBell({
                   onClick={handleMarkAll}
                   className="text-xs text-[#2B6CB0] hover:underline"
                 >
-                  全部已读
+                  {t('notifications.markAllRead')}
                 </button>
               )}
             </div>
@@ -106,7 +108,7 @@ export default function NotificationBell({
             <div className="max-h-[400px] overflow-y-auto divide-y divide-gray-50">
               {notifications.length === 0 ? (
                 <div className="px-4 py-10 text-center text-gray-400 text-sm">
-                  暂无通知
+                  {t('notifications.noNotifications')}
                 </div>
               ) : (
                 notifications.map(n => (

@@ -223,17 +223,17 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{groupBy === 'brand' ? '品牌' : '月份'}</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">收入</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">支出</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">利润</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">毛利率</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{groupBy === 'brand' ? t('reports.byBrand') : t('reports.byMonth')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalRevenue')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalExpenses')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalProfit')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.grossMargin')}</th>
               <th className="px-4 py-3" style={{ width: '120px' }}></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {rows.length === 0 ? (
-              <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">暂无数据</td></tr>
+              <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">{t('reports.noDataYet')}</td></tr>
             ) : rows.map(r => (
               <tr key={r.label} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 font-medium text-gray-900">{r.label}</td>
@@ -260,7 +260,7 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
           {rows.length > 0 && (
             <tfoot className="border-t-2 border-gray-200 bg-gray-50">
               <tr>
-                <td className="px-4 py-3 font-semibold text-gray-700 text-sm">合计</td>
+                <td className="px-4 py-3 font-semibold text-gray-700 text-sm">{t('reports.total')}</td>
                 <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-[#38A169]">{fmt(totals.revenue)}</td>
                 <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-[#E53E3E]">{fmt(totals.expenses)}</td>
                 <td className={`px-4 py-3 text-right font-mono text-sm font-bold ${totals.profit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`}>{fmt(totals.profit)}</td>
@@ -278,6 +278,7 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
 // ── Aging Report ──────────────────────────────────────────────────────────
 
 function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
+  const { t } = useTranslation()
   const today = new Date()
 
   const agingRows = useMemo(() => {
@@ -285,7 +286,7 @@ function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
       .filter(r => r.status === 'Unpaid' && r.issue_date)
       .map(r => {
         const days = Math.floor((today.getTime() - new Date(r.issue_date!).getTime()) / (1000 * 60 * 60 * 24))
-        const bucket = days <= 30 ? '0–30天' : days <= 60 ? '31–60天' : days <= 90 ? '61–90天' : '90+天'
+        const bucket = days <= 30 ? '0-30' : days <= 60 ? '31-60' : days <= 90 ? '61-90' : '90+'
         const bucketOrder = days <= 30 ? 0 : days <= 60 ? 1 : days <= 90 ? 2 : 3
         return { ...r, days, bucket, bucketOrder }
       })
@@ -293,49 +294,55 @@ function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
   }, [revenues])
 
   const bucketTotals = useMemo(() => {
-    const buckets: Record<string, number> = { '0–30天': 0, '31–60天': 0, '61–90天': 0, '90+天': 0 }
+    const buckets: Record<string, number> = { '0-30': 0, '31-60': 0, '61-90': 0, '90+': 0 }
     for (const r of agingRows) buckets[r.bucket] = (buckets[r.bucket] ?? 0) + Number(r.amount)
     return buckets
   }, [agingRows])
 
   const totalUnpaid = agingRows.reduce((s, r) => s + Number(r.amount), 0)
 
+  const BUCKET_LABELS: Record<string, string> = {
+    '0-30': t('reports.agingBucket030'),
+    '31-60': t('reports.agingBucket3160'),
+    '61-90': t('reports.agingBucket6190'),
+    '90+': t('reports.agingBucket90plus'),
+  }
   const BUCKET_COLORS: Record<string, string> = {
-    '0–30天':  'text-[#38A169]',
-    '31–60天': 'text-[#DD6B20]',
-    '61–90天': 'text-[#E53E3E]',
-    '90+天':   'text-[#E53E3E] font-bold',
+    '0-30':  'text-[#38A169]',
+    '31-60': 'text-[#DD6B20]',
+    '61-90': 'text-[#E53E3E]',
+    '90+':   'text-[#E53E3E] font-bold',
   }
   const BUCKET_BG: Record<string, string> = {
-    '0–30天':  'bg-[#38A169]/10 border-[#38A169]/20',
-    '31–60天': 'bg-[#DD6B20]/10 border-[#DD6B20]/20',
-    '61–90天': 'bg-[#E53E3E]/10 border-[#E53E3E]/20',
-    '90+天':   'bg-[#E53E3E]/15 border-[#E53E3E]/25',
+    '0-30':  'bg-[#38A169]/10 border-[#38A169]/20',
+    '31-60': 'bg-[#DD6B20]/10 border-[#DD6B20]/20',
+    '61-90': 'bg-[#E53E3E]/10 border-[#E53E3E]/20',
+    '90+':   'bg-[#E53E3E]/15 border-[#E53E3E]/25',
   }
 
   async function handleExcel() {
-    const headers = ['品牌', '项目代码', '项目名称', '发票号', '描述', '金额 (AUD)', '开票日期', '逾期天数', '账期区间']
+    const headers = [t('projects.brand'), t('projects.projectCode'), t('projects.projectName'), t('revenue.invoiceNumber'), t('common.description'), `${t('common.amount')} (AUD)`, t('revenue.issueDate'), t('reports.overdueDays'), t('reports.agingBucket')]
     const rows: SheetRow[] = agingRows.map(r => [
       r.brand_name, r.project_code ?? '—', r.project_name,
       r.invoice_number ?? '—', r.description,
-      Number(r.amount), r.issue_date ?? '—', r.days, r.bucket,
+      Number(r.amount), r.issue_date ?? '—', r.days, BUCKET_LABELS[r.bucket] ?? r.bucket,
     ])
-    await exportToExcel([{ name: '应收账龄', headers, rows }], `Aging_Report_${new Date().toISOString().slice(0, 10)}`)
+    await exportToExcel([{ name: t('reports.agingReport'), headers, rows }], `Aging_Report_${new Date().toISOString().slice(0, 10)}`)
   }
 
   async function handlePdf() {
-    const headers = ['品牌', '项目', '描述', '金额', '开票日期', '逾期天数', '账期']
+    const headers = [t('projects.brand'), t('projects.projectName'), t('common.description'), t('common.amount'), t('revenue.issueDate'), t('reports.overdueDays'), t('reports.agingBucket')]
     const rows: SheetRow[] = agingRows.map(r => [
       r.brand_name, r.project_code ?? r.project_name,
-      r.description, fmt(Number(r.amount)), r.issue_date ?? '—', `${r.days}天`, r.bucket,
+      r.description, fmt(Number(r.amount)), r.issue_date ?? '—', `${r.days}`, BUCKET_LABELS[r.bucket] ?? r.bucket,
     ])
-    await exportToPDF('应收账款账龄分析', headers, rows, `Aging_Report_${new Date().toISOString().slice(0, 10)}`)
+    await exportToPDF(t('reports.agingReport'), headers, rows, `Aging_Report_${new Date().toISOString().slice(0, 10)}`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">共 {agingRows.length} 条未收款记录，合计 <span className="font-semibold text-[#E53E3E]">{fmt(totalUnpaid)}</span></p>
+        <p className="text-sm text-gray-500">{t('reports.unpaidRecords').replace('{count}', String(agingRows.length))} <span className="font-semibold text-[#E53E3E]">{fmt(totalUnpaid)}</span></p>
         <ExportBar onExcel={handleExcel} onPdf={handlePdf} />
       </div>
 
@@ -343,10 +350,10 @@ function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
       <div className="grid grid-cols-4 gap-3">
         {Object.entries(bucketTotals).map(([bucket, total]) => (
           <div key={bucket} className={`rounded-xl border px-4 py-3 ${BUCKET_BG[bucket]}`}>
-            <p className="text-xs font-medium text-gray-600 mb-1">{bucket}</p>
+            <p className="text-xs font-medium text-gray-600 mb-1">{BUCKET_LABELS[bucket] ?? bucket}</p>
             <p className={`text-lg font-bold ${BUCKET_COLORS[bucket]}`}>{fmt(total)}</p>
             <p className="text-xs text-gray-400 mt-0.5">
-              {agingRows.filter(r => r.bucket === bucket).length} 条
+              {agingRows.filter(r => r.bucket === bucket).length} {t('reports.items')}
             </p>
           </div>
         ))}
@@ -356,19 +363,19 @@ function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">品牌</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">项目</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">描述</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">发票号</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">金额</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">开票日期</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">逾期天数</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500 text-xs">账期</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.brand')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.projectName')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.description')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('revenue.invoiceNumber')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('common.amount')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('revenue.issueDate')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.overdueDays')}</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.agingBucket')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {agingRows.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">暂无逾期未收款记录 ✓</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">{t('reports.noOverdueRecords')} ✓</td></tr>
             ) : agingRows.map(r => (
               <tr key={r.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 text-xs text-gray-600">{r.brand_name}</td>
@@ -381,10 +388,10 @@ function AgingReport({ revenues }: { revenues: RawRevenue[] }) {
                 <td className="px-4 py-3 text-xs text-gray-400 font-mono">{r.invoice_number ?? '—'}</td>
                 <td className="px-4 py-3 text-right font-mono text-xs font-semibold text-gray-900">{fmt(Number(r.amount))}</td>
                 <td className="px-4 py-3 text-right text-xs text-gray-500">{r.issue_date}</td>
-                <td className={`px-4 py-3 text-right text-xs font-semibold ${BUCKET_COLORS[r.bucket]}`}>{r.days}天</td>
+                <td className={`px-4 py-3 text-right text-xs font-semibold ${BUCKET_COLORS[r.bucket]}`}>{r.days}</td>
                 <td className="px-4 py-3 text-center">
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${BUCKET_BG[r.bucket]}`}>
-                    {r.bucket}
+                    {BUCKET_LABELS[r.bucket] ?? r.bucket}
                   </span>
                 </td>
               </tr>
@@ -403,6 +410,7 @@ function MarginReport({ revenues, expenses, projects }: {
   expenses: RawExpense[]
   projects: RawProject[]
 }) {
+  const { t } = useTranslation()
   const rows = useMemo(() => {
     const revMap: Record<string, number> = {}
     const expMap: Record<string, number> = {}
@@ -430,28 +438,28 @@ function MarginReport({ revenues, expenses, projects }: {
   }, [revenues, expenses, projects])
 
   async function handleExcel() {
-    const headers = ['排名', '项目代码', '项目名称', '品牌', '状态', '收入 (AUD)', '支出 (AUD)', '利润 (AUD)', '毛利率']
+    const headers = [t('reports.rank'), t('projects.projectCode'), t('projects.projectName'), t('projects.brand'), t('common.status'), `${t('reports.totalRevenue')} (AUD)`, `${t('reports.totalExpenses')} (AUD)`, `${t('reports.totalProfit')} (AUD)`, t('reports.grossMargin')]
     const sheetRows: SheetRow[] = rows.map(r => [
       r.rank, r.project_code ?? '—', r.name, r.brand_name, r.status,
       r.revenue, r.expenses_total, r.profit,
       r.margin !== null ? `${r.margin.toFixed(1)}%` : '—',
     ])
-    await exportToExcel([{ name: '利润率排名', headers, rows: sheetRows }], `Margin_Ranking_${new Date().toISOString().slice(0, 10)}`)
+    await exportToExcel([{ name: t('reports.marginRanking'), headers, rows: sheetRows }], `Margin_Ranking_${new Date().toISOString().slice(0, 10)}`)
   }
 
   async function handlePdf() {
-    const headers = ['排名', '项目代码', '项目名称', '品牌', '收入', '利润', '毛利率']
+    const headers = [t('reports.rank'), t('projects.projectCode'), t('projects.projectName'), t('projects.brand'), t('reports.totalRevenue'), t('reports.totalProfit'), t('reports.grossMargin')]
     const sheetRows: SheetRow[] = rows.map(r => [
       r.rank, r.project_code ?? '—', r.name, r.brand_name,
       fmt(r.revenue), fmt(r.profit), fmtPct(r.margin),
     ])
-    await exportToPDF('项目利润率排名', headers, sheetRows, `Margin_Ranking_${new Date().toISOString().slice(0, 10)}`)
+    await exportToPDF(t('reports.marginRanking'), headers, sheetRows, `Margin_Ranking_${new Date().toISOString().slice(0, 10)}`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">共 {rows.length} 个有财务数据的项目</p>
+        <p className="text-sm text-gray-500">{t('reports.projectsWithData').replace('{count}', String(rows.length))}</p>
         <ExportBar onExcel={handleExcel} onPdf={handlePdf} />
       </div>
 
@@ -459,20 +467,20 @@ function MarginReport({ revenues, expenses, projects }: {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-center px-4 py-3 font-medium text-gray-500 text-xs w-12">排名</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">项目</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">品牌</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">状态</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">收入</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">支出</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">利润</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">毛利率</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 text-xs w-12">{t('reports.rank')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.projectName')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.brand')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.status')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalRevenue')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalExpenses')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalProfit')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.grossMargin')}</th>
               <th className="px-4 py-3 w-24"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {rows.length === 0 ? (
-              <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">暂无数据</td></tr>
+              <tr><td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">{t('reports.noDataYet')}</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 text-center">
@@ -525,6 +533,7 @@ function BudgetReport({ revenues, projects }: {
   revenues: RawRevenue[]
   projects: RawProject[]
 }) {
+  const { t } = useTranslation()
   const [sortBy, setSortBy] = useState<'variance' | 'pct'>('variance')
 
   const rows = useMemo(() => {
@@ -550,33 +559,33 @@ function BudgetReport({ revenues, projects }: {
   const overallPct = totalEstimated > 0 ? (totalActual / totalEstimated) * 100 : null
 
   async function handleExcel() {
-    const headers = ['项目代码', '项目名称', '品牌', '状态', '预计收入 (AUD)', '实际收入 (AUD)', '差异 (AUD)', '完成率']
+    const headers = [t('projects.projectCode'), t('projects.projectName'), t('projects.brand'), t('common.status'), `${t('reports.estimatedRevenue')} (AUD)`, `${t('reports.actualRevenue')} (AUD)`, `${t('reports.variance')} (AUD)`, t('reports.completionRate')]
     const sheetRows: SheetRow[] = rows.map(r => [
       r.project_code ?? '—', r.name, r.brand_name, r.status,
       r.estimated, r.actual, r.variance, `${r.pct.toFixed(1)}%`,
     ])
-    sheetRows.push(['合计', '', '', '', totalEstimated, totalActual, totalVariance, overallPct !== null ? `${overallPct.toFixed(1)}%` : '—'])
-    await exportToExcel([{ name: '预算vs实际', headers, rows: sheetRows }], `Budget_vs_Actual_${new Date().toISOString().slice(0, 10)}`)
+    sheetRows.push([t('reports.total'), '', '', '', totalEstimated, totalActual, totalVariance, overallPct !== null ? `${overallPct.toFixed(1)}%` : '—'])
+    await exportToExcel([{ name: t('reports.budgetVsActual'), headers, rows: sheetRows }], `Budget_vs_Actual_${new Date().toISOString().slice(0, 10)}`)
   }
 
   async function handlePdf() {
-    const headers = ['项目代码', '项目名称', '品牌', '预计收入', '实际收入', '差异', '完成率']
+    const headers = [t('projects.projectCode'), t('projects.projectName'), t('projects.brand'), t('reports.estimatedRevenue'), t('reports.actualRevenue'), t('reports.variance'), t('reports.completionRate')]
     const sheetRows: SheetRow[] = rows.map(r => [
       r.project_code ?? '—', r.name, r.brand_name,
       fmt(r.estimated), fmt(r.actual), fmt(r.variance), `${r.pct.toFixed(1)}%`,
     ])
-    await exportToPDF('预算 vs 实际对比', headers, sheetRows, `Budget_vs_Actual_${new Date().toISOString().slice(0, 10)}`)
+    await exportToPDF(t('reports.budgetVsActual'), headers, sheetRows, `Budget_vs_Actual_${new Date().toISOString().slice(0, 10)}`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <p className="text-sm text-gray-500">共 {rows.length} 个项目</p>
+          <p className="text-sm text-gray-500">{t('reports.projectCount').replace('{count}', String(rows.length))}</p>
           <div className="flex items-center gap-1 text-xs text-gray-400">
-            排序：
-            <button onClick={() => setSortBy('variance')} className={`px-2 py-0.5 rounded ${sortBy === 'variance' ? 'bg-[#2B6CB0]/10 text-[#2B6CB0]' : 'hover:bg-gray-100'}`}>差异金额</button>
-            <button onClick={() => setSortBy('pct')} className={`px-2 py-0.5 rounded ${sortBy === 'pct' ? 'bg-[#2B6CB0]/10 text-[#2B6CB0]' : 'hover:bg-gray-100'}`}>完成率</button>
+            {t('reports.sortBy')}
+            <button onClick={() => setSortBy('variance')} className={`px-2 py-0.5 rounded ${sortBy === 'variance' ? 'bg-[#2B6CB0]/10 text-[#2B6CB0]' : 'hover:bg-gray-100'}`}>{t('reports.varianceAmount')}</button>
+            <button onClick={() => setSortBy('pct')} className={`px-2 py-0.5 rounded ${sortBy === 'pct' ? 'bg-[#2B6CB0]/10 text-[#2B6CB0]' : 'hover:bg-gray-100'}`}>{t('reports.completionRate')}</button>
           </div>
         </div>
         <ExportBar onExcel={handleExcel} onPdf={handlePdf} />
@@ -585,19 +594,19 @@ function BudgetReport({ revenues, projects }: {
       {/* Summary cards */}
       <div className="grid grid-cols-4 gap-4">
         <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3">
-          <p className="text-xs text-gray-400 mb-1">预计总收入</p>
+          <p className="text-xs text-gray-400 mb-1">{t('reports.estimatedTotalRevenue')}</p>
           <p className="text-lg font-bold text-gray-700">{fmt(totalEstimated)}</p>
         </div>
         <div className="bg-[#38A169]/5 border border-[#38A169]/20 rounded-xl px-4 py-3">
-          <p className="text-xs text-[#38A169] mb-1">实际总收入</p>
+          <p className="text-xs text-[#38A169] mb-1">{t('reports.actualTotalRevenue')}</p>
           <p className="text-lg font-bold text-[#38A169]">{fmt(totalActual)}</p>
         </div>
         <div className={`rounded-xl px-4 py-3 border ${totalVariance >= 0 ? 'bg-[#38A169]/5 border-[#38A169]/20' : 'bg-[#E53E3E]/5 border-[#E53E3E]/20'}`}>
-          <p className="text-xs mb-1" style={{ color: totalVariance >= 0 ? '#38A169' : '#E53E3E' }}>总差异</p>
+          <p className="text-xs mb-1" style={{ color: totalVariance >= 0 ? '#38A169' : '#E53E3E' }}>{t('reports.totalVariance')}</p>
           <p className="text-lg font-bold" style={{ color: totalVariance >= 0 ? '#38A169' : '#E53E3E' }}>{totalVariance >= 0 ? '+' : ''}{fmt(totalVariance)}</p>
         </div>
         <div className="bg-[#2B6CB0]/5 border border-[#2B6CB0]/20 rounded-xl px-4 py-3">
-          <p className="text-xs text-[#2B6CB0] mb-1">整体完成率</p>
+          <p className="text-xs text-[#2B6CB0] mb-1">{t('reports.overallCompletionRate')}</p>
           <p className="text-lg font-bold text-[#2B6CB0]">{overallPct !== null ? `${overallPct.toFixed(1)}%` : '—'}</p>
         </div>
       </div>
@@ -606,19 +615,19 @@ function BudgetReport({ revenues, projects }: {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">项目</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">品牌</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">状态</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">预计收入</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">实际收入</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">差异</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">完成率</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.projectName')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.brand')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.status')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.estimatedRevenue')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.actualRevenue')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.variance')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.completionRate')}</th>
               <th className="px-4 py-3 w-28"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
             {rows.length === 0 ? (
-              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">暂无数据</td></tr>
+              <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">{t('reports.noDataYet')}</td></tr>
             ) : rows.map(r => (
               <tr key={r.id} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3">
@@ -659,7 +668,7 @@ function BudgetReport({ revenues, projects }: {
           {rows.length > 0 && (
             <tfoot className="border-t-2 border-gray-200 bg-gray-50">
               <tr>
-                <td className="px-4 py-3 font-semibold text-gray-700 text-sm" colSpan={3}>合计</td>
+                <td className="px-4 py-3 font-semibold text-gray-700 text-sm" colSpan={3}>{t('reports.total')}</td>
                 <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-gray-600">{fmt(totalEstimated)}</td>
                 <td className="px-4 py-3 text-right font-mono text-sm font-semibold text-[#38A169]">{fmt(totalActual)}</td>
                 <td className={`px-4 py-3 text-right font-mono text-sm font-bold ${totalVariance >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}`}>
@@ -681,15 +690,16 @@ function BudgetReport({ revenues, projects }: {
 // ── Main Client Component ─────────────────────────────────────────────────
 
 export default function ReportsClient({ revenues, expenses, projects, brands }: Props) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'pl' | 'aging' | 'margin' | 'budget'>('pl')
   const [range, setRange] = useState('year')
   const [brandFilter, setBrandFilter] = useState('all')
 
   const RANGE_OPTS = [
-    { value: 'month', label: '本月' },
-    { value: 'quarter', label: '本季度' },
-    { value: 'year', label: '本年' },
-    { value: 'all', label: '全部' },
+    { value: 'month', label: t('reports.thisMonth') },
+    { value: 'quarter', label: t('reports.thisQuarter') },
+    { value: 'year', label: t('reports.thisYear') },
+    { value: 'all', label: t('reports.allTime') },
   ]
 
   return (
@@ -697,10 +707,10 @@ export default function ReportsClient({ revenues, expenses, projects, brands }: 
       {/* Tab bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1 bg-gray-100/80 p-1 rounded-xl">
-          <TabButton active={activeTab === 'pl'} onClick={() => setActiveTab('pl')}>损益表</TabButton>
-          <TabButton active={activeTab === 'aging'} onClick={() => setActiveTab('aging')}>账龄分析</TabButton>
-          <TabButton active={activeTab === 'margin'} onClick={() => setActiveTab('margin')}>利润率排名</TabButton>
-          <TabButton active={activeTab === 'budget'} onClick={() => setActiveTab('budget')}>预算 vs 实际</TabButton>
+          <TabButton active={activeTab === 'pl'} onClick={() => setActiveTab('pl')}>{t('reports.plReport')}</TabButton>
+          <TabButton active={activeTab === 'aging'} onClick={() => setActiveTab('aging')}>{t('reports.agingReport')}</TabButton>
+          <TabButton active={activeTab === 'margin'} onClick={() => setActiveTab('margin')}>{t('reports.marginRanking')}</TabButton>
+          <TabButton active={activeTab === 'budget'} onClick={() => setActiveTab('budget')}>{t('reports.budgetVsActual')}</TabButton>
         </div>
 
         {/* Filters (only for P&L and Budget tabs) */}
@@ -726,7 +736,7 @@ export default function ReportsClient({ revenues, expenses, projects, brands }: 
                   onChange={e => setBrandFilter(e.target.value)}
                   className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-[#2B6CB0]/30"
                 >
-                  <option value="all">所有品牌</option>
+                  <option value="all">{t('reports.allBrands')}</option>
                   {brands.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
                 </select>
               </>

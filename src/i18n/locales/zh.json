@@ -493,7 +493,9 @@
     "actualRevenue": "实际收入",
     "variance": "差异",
     "projectCount": "共 {count} 个项目",
-    "generatedAt": "生成时间：{time}"
+    "generatedAt": "生成时间：{time}",
+    "overdueDays": "逾期天数",
+    "agingBucket": "账期区间"
   },
   "profile": {
     "title": "个人资料",

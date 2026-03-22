@@ -493,7 +493,9 @@
     "actualRevenue": "Actual Revenue",
     "variance": "Variance",
     "projectCount": "{count} projects",
-    "generatedAt": "Generated at: {time}"
+    "generatedAt": "Generated at: {time}",
+    "overdueDays": "Overdue Days",
+    "agingBucket": "Aging Bucket"
   },
   "profile": {
     "title": "Profile",
