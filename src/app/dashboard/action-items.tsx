@@ -13,6 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
+import { useTranslation } from '@/i18n/context'
 
 export interface PendingProject {
   id: string
@@ -30,8 +31,8 @@ function formatCurrency(n: number | null) {
   return `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
 }
 
-function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString('zh-CN', {
+function formatDateTime(iso: string, locale: string) {
+  return new Date(iso).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-AU', {
     month: '2-digit', day: '2-digit',
     hour: '2-digit', minute: '2-digit',
   })
@@ -39,12 +40,13 @@ function formatDateTime(iso: string) {
 
 function ApproveButton({ project, onDone }: { project: PendingProject; onDone: () => void }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [toast, setToast] = useState<string | null>(null)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await approveProject(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast(`✓ 已批准 · 项目代码：${result.projectCode}`)
+      setToast(`✓ ${t('projects.approvedWithCode').replace('{code}', result.projectCode ?? '')}`)
       setTimeout(() => { setToast(null); onDone(); router.refresh() }, 4000)
     }
     return result
@@ -71,7 +73,7 @@ function ApproveButton({ project, onDone }: { project: PendingProject; onDone: (
           disabled={pending}
           className="bg-[#38A169] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
         >
-          {pending ? '...' : '批准'}
+          {pending ? '...' : t('expenses.approve')}
         </Button>
       </form>
     </div>
@@ -80,6 +82,7 @@ function ApproveButton({ project, onDone }: { project: PendingProject; onDone: (
 
 function RejectButton({ project, onDone }: { project: PendingProject; onDone: () => void }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
@@ -100,26 +103,26 @@ function RejectButton({ project, onDone }: { project: PendingProject; onDone: ()
         onClick={() => setOpen(true)}
         className="border-[#E53E3E]/40 text-[#E53E3E] hover:bg-[#E53E3E]/5 h-7 px-3 text-xs"
       >
-        拒绝
+        {t('expenses.reject')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>拒绝项目申请</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('projects.rejectProject')}</DialogTitle></DialogHeader>
           <p className="text-sm text-gray-500">
-            项目：<span className="font-medium text-gray-900">{project.brand_name} · {project.name}</span>
+            {t('projects.projectInfo').replace('{brand}', project.brand_name).replace('{name}', project.name)}
           </p>
           <form action={formAction} className="space-y-4 pt-1">
             <input type="hidden" name="project_id" value={project.id} />
             <div className="space-y-1.5">
-              <Label htmlFor="proj-reason">拒绝原因（选填）</Label>
-              <Textarea id="proj-reason" name="reason" placeholder="请说明拒绝原因..." rows={3} autoFocus />
+              <Label htmlFor="proj-reason">{t('projects.rejectionReasonOptional')}</Label>
+              <Textarea id="proj-reason" name="reason" placeholder={t('projects.explainRejection')} rows={3} autoFocus />
             </div>
             {state && 'error' in state && <p className="text-sm text-red-600">{state.error}</p>}
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>{t('common.cancel')}</Button>
               <Button type="submit" variant="destructive" disabled={pending}>
-                {pending ? '处理中...' : '确认拒绝'}
+                {pending ? t('common.processing') : t('projects.confirmRejection')}
               </Button>
             </div>
           </form>
@@ -135,6 +138,7 @@ interface Props {
 
 // Now renders just the list content (card shell is in dashboard/page.tsx)
 export default function ActionItems({ projects: initial }: Props) {
+  const { t, locale } = useTranslation()
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const visible = initial.filter(p => !dismissed.has(p.id))
   const dismiss = (id: string) => setDismissed(prev => new Set([...prev, id]))
@@ -142,7 +146,7 @@ export default function ActionItems({ projects: initial }: Props) {
   if (visible.length === 0) {
     return (
       <div className="px-4 py-8 text-center text-gray-400 text-sm">
-        暂无待审批项目 ✓
+        {t('dashboard.noPendingProjects')}
       </div>
     )
   }
@@ -158,11 +162,11 @@ export default function ActionItems({ projects: initial }: Props) {
               </span>
               <Link href={`/projects/${p.id}`} className="font-medium text-sm text-gray-900 truncate mt-0.5 hover:text-[#2B6CB0] hover:underline block">{p.name}</Link>
               <div className="flex items-center gap-2 mt-1 text-xs text-gray-500 flex-wrap">
-                <span>预估 <span className="font-medium text-gray-700">{formatCurrency(p.estimated_revenue)}</span></span>
+                <span>{t('projects.estimatedRevenue')} <span className="font-medium text-gray-700">{formatCurrency(p.estimated_revenue)}</span></span>
                 <span>·</span>
-                <span>{p.applicant_name ?? '未知'}</span>
+                <span>{p.applicant_name ?? t('projects.unknown')}</span>
                 <span>·</span>
-                <span>{formatDateTime(p.created_at)}</span>
+                <span>{formatDateTime(p.created_at, locale)}</span>
               </div>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">

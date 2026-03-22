@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/i18n/context'
 import { updateUserRole, suspendUser, activateUser, sendPasswordReset } from '@/app/actions/user-management'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,6 +48,7 @@ const ROLE_COLORS: Record<string, string> = {
 }
 
 function EditRoleDialog({ user, onDone }: { user: UserRow; onDone: () => void }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [role, setRole] = useState(user.role)
@@ -71,16 +73,16 @@ function EditRoleDialog({ user, onDone }: { user: UserRow; onDone: () => void })
         onClick={() => { setRole(user.role); setOpen(true) }}
         className="h-7 px-2.5 text-xs border-gray-200 text-gray-600"
       >
-        编辑角色
+        {t('adminUsers.editRole')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>修改用户角色</DialogTitle>
+            <DialogTitle>{t('adminUsers.changeUserRole')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            用户：<span className="font-medium text-gray-900">{user.full_name || user.email}</span>
+            {t('adminUsers.user')}<span className="font-medium text-gray-900">{user.full_name || user.email}</span>
           </p>
           <form action={formAction} className="space-y-4 pt-1">
             <input type="hidden" name="user_id" value={user.id} />
@@ -95,14 +97,14 @@ function EditRoleDialog({ user, onDone }: { user: UserRow; onDone: () => void })
               </SelectContent>
             </Select>
             {state && 'error' in state && (
-              <p className="text-sm text-red-600">{state.error}</p>
+              <p className="text-sm text-red-600">{t(state.error)}</p>
             )}
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={pending}>
-                {pending ? '保存中...' : '保存'}
+                {pending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
           </form>
@@ -113,6 +115,7 @@ function EditRoleDialog({ user, onDone }: { user: UserRow; onDone: () => void })
 }
 
 function SuspendButton({ user }: { user: UserRow }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
 
@@ -120,7 +123,7 @@ function SuspendButton({ user }: { user: UserRow }) {
     const fn = user.is_suspended ? activateUser : suspendUser
     const result = await fn(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast(user.is_suspended ? '✓ 已启用' : '✓ 已停用')
+      setToast(user.is_suspended ? `✓ ${t('adminUsers.activated')}` : `✓ ${t('adminUsers.suspended2')}`)
       setTimeout(() => { setToast(null); router.refresh() }, 1500)
     }
     return result
@@ -137,7 +140,7 @@ function SuspendButton({ user }: { user: UserRow }) {
       <form action={formAction}>
         <input type="hidden" name="user_id" value={user.id} />
         {state && 'error' in state && (
-          <p className="text-xs text-red-500 mb-1">{state.error}</p>
+          <p className="text-xs text-red-500 mb-1">{t(state.error)}</p>
         )}
         <Button
           type="submit"
@@ -150,7 +153,7 @@ function SuspendButton({ user }: { user: UserRow }) {
               : 'border-[#E53E3E]/40 text-[#E53E3E] hover:bg-[#E53E3E]/5'
           }`}
         >
-          {pending ? '...' : user.is_suspended ? '启用' : '停用'}
+          {pending ? '...' : user.is_suspended ? t('adminUsers.activate') : t('adminUsers.suspend')}
         </Button>
       </form>
     </div>
@@ -158,12 +161,13 @@ function SuspendButton({ user }: { user: UserRow }) {
 }
 
 function ResetPasswordButton({ user }: { user: UserRow }) {
+  const { t } = useTranslation()
   const [toast, setToast] = useState<string | null>(null)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await sendPasswordReset(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast('✓ 重置邮件已发送')
+      setToast(`✓ ${t('adminUsers.resetEmailSent')}`)
       setTimeout(() => setToast(null), 3000)
     }
     return result
@@ -180,7 +184,7 @@ function ResetPasswordButton({ user }: { user: UserRow }) {
       <form action={formAction}>
         <input type="hidden" name="email" value={user.email} />
         {state && 'error' in state && (
-          <p className="text-xs text-red-500 mb-1">{state.error}</p>
+          <p className="text-xs text-red-500 mb-1">{t(state.error)}</p>
         )}
         <Button
           type="submit"
@@ -189,7 +193,7 @@ function ResetPasswordButton({ user }: { user: UserRow }) {
           disabled={pending}
           className="h-7 px-2.5 text-xs border-gray-200 text-gray-600"
         >
-          {pending ? '...' : '重置密码'}
+          {pending ? '...' : t('adminUsers.resetPassword')}
         </Button>
       </form>
     </div>
@@ -201,6 +205,7 @@ interface Props {
 }
 
 export default function UsersTable({ users: initial }: Props) {
+  const { t } = useTranslation()
   const [localUsers, setLocalUsers] = useState(initial)
 
   return (
@@ -208,20 +213,20 @@ export default function UsersTable({ users: initial }: Props) {
       <table className="w-full text-sm">
         <thead className="bg-gray-50 border-b border-gray-100">
           <tr>
-            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">姓名</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">邮箱</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">角色</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">状态</th>
-            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">注册时间</th>
-            <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">操作</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.name')}</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.email')}</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.role')}</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.status')}</th>
+            <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.createdAt')}</th>
+            <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('common.actions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
           {localUsers.map((u) => (
             <tr key={u.id} className={`hover:bg-gray-50/50 transition-colors ${u.is_suspended ? 'opacity-60' : ''}`}>
               <td className="px-4 py-3 font-medium text-gray-900">
-                {u.full_name || <span className="text-gray-400 italic">未设置</span>}
-                {u.is_self && <span className="ml-1.5 text-xs text-gray-400">(你)</span>}
+                {u.full_name || <span className="text-gray-400 italic">{t('common.notSet')}</span>}
+                {u.is_self && <span className="ml-1.5 text-xs text-gray-400">{t('adminUsers.you')}</span>}
               </td>
               <td className="px-4 py-3 text-gray-600 font-mono text-xs">{u.email}</td>
               <td className="px-4 py-3">
@@ -233,12 +238,12 @@ export default function UsersTable({ users: initial }: Props) {
                 {u.is_suspended ? (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-[#E53E3E]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#E53E3E]" />
-                    已停用
+                    {t('adminUsers.suspendedLabel')}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-xs font-medium text-[#38A169]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#38A169]" />
-                    启用
+                    {t('adminUsers.active')}
                   </span>
                 )}
               </td>
@@ -259,7 +264,7 @@ export default function UsersTable({ users: initial }: Props) {
           {localUsers.length === 0 && (
             <tr>
               <td colSpan={6} className="px-4 py-10 text-center text-gray-400 text-sm">
-                暂无用户
+                {t('adminUsers.noUsers')}
               </td>
             </tr>
           )}

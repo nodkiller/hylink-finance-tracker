@@ -8,6 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { useTranslation } from '@/i18n/context'
 
 export interface StatusCount {
   status: string
@@ -26,34 +27,36 @@ const STATUS_COLORS: Record<string, string> = {
   'Reconciled': '#9ca3af',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  'Active': '进行中',
-  'Pending Approval': '待审批',
-  'Completed': '已完成',
-  'Rejected': '已拒绝',
-  'Reconciled': '已对账',
-}
-
-function CustomTooltip({ active, payload }: any) {
-  if (!active || !payload?.length) return null
-  const p = payload[0]
-  return (
-    <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-gray-700">
-        {STATUS_LABELS[p.name] ?? p.name}
-      </p>
-      <p style={{ color: STATUS_COLORS[p.name] ?? '#9ca3af' }}>
-        {p.value} 个项目
-      </p>
-    </div>
-  )
-}
-
 export default function ProjectStatusPie({ data }: Props) {
+  const { t } = useTranslation()
+
+  const STATUS_LABELS: Record<string, string> = {
+    'Active': t('status.active'),
+    'Pending Approval': t('status.pendingApproval'),
+    'Completed': t('status.completed'),
+    'Rejected': t('status.rejected'),
+    'Reconciled': t('status.reconciled'),
+  }
+
+  function CustomTooltip({ active, payload }: any) {
+    if (!active || !payload?.length) return null
+    const p = payload[0]
+    return (
+      <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-700">
+          {STATUS_LABELS[p.name] ?? p.name}
+        </p>
+        <p style={{ color: STATUS_COLORS[p.name] ?? '#9ca3af' }}>
+          {p.value}
+        </p>
+      </div>
+    )
+  }
+
   if (!data.length) {
     return (
       <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">
-        暂无数据
+        {t('common.noData')}
       </div>
     )
   }

@@ -10,6 +10,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
+import { useTranslation } from '@/i18n/context'
 
 export interface MonthlyDataPoint {
   month: string   // e.g. "Jan", "Feb"
@@ -27,26 +28,32 @@ function fmtY(n: number) {
   return `A$${n}`
 }
 
-const LABELS: Record<string, string> = { revenue: '收入', expenses: '支出', profit: '利润' }
-
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      {payload.map((p: any) => (
-        <p key={p.name} style={{ color: p.color }}>
-          {LABELS[p.name] ?? p.name}:{' '}
-          <span className="font-medium">
-            A${Number(p.value).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
-          </span>
-        </p>
-      ))}
-    </div>
-  )
-}
-
 export default function TrendChart({ data }: Props) {
+  const { t } = useTranslation()
+
+  const LABELS: Record<string, string> = {
+    revenue: t('dashboard.revenue'),
+    expenses: t('dashboard.expenses'),
+    profit: t('dashboard.profit'),
+  }
+
+  function CustomTooltip({ active, payload, label }: any) {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+        {payload.map((p: any) => (
+          <p key={p.name} style={{ color: p.color }}>
+            {LABELS[p.name] ?? p.name}:{' '}
+            <span className="font-medium">
+              A${Number(p.value).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+            </span>
+          </p>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <ResponsiveContainer width="100%" height={220}>
       <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>

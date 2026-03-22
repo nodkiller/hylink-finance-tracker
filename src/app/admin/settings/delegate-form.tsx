@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { saveDelegateSettings } from '@/app/actions/settings'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,6 +31,7 @@ export default function DelegateForm({
   approvers: ApproverOption[]
   data: DelegateData
 }) {
+  const { t } = useTranslation()
   const [state, formAction, pending] = useActionState<State, FormData>(saveDelegateSettings, undefined)
   const [approverId, setApproverId] = useState(data.delegate_approver_id ?? '__none__')
   const [active, setActive] = useState(data.delegate_active)
@@ -57,19 +59,19 @@ export default function DelegateForm({
           />
         </button>
         <span className="text-sm text-gray-700">
-          {active ? '代理审批已启用' : '代理审批未启用'}
+          {active ? t('adminSettings.delegateEnabled') : t('adminSettings.delegateDisabled')}
         </span>
       </div>
 
       <div className={`space-y-4 transition-opacity ${active ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
         <div className="space-y-1.5 max-w-xs">
-          <Label>代理审批人</Label>
+          <Label>{t('adminSettings.delegateApprover')}</Label>
           <Select value={approverId} onValueChange={v => v && setApproverId(v)}>
             <SelectTrigger>
-              <SelectValue placeholder="请选择代理人" />
+              <SelectValue placeholder={t('adminSettings.selectDelegate')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__none__">不指定</SelectItem>
+              <SelectItem value="__none__">{t('adminSettings.noApprover')}</SelectItem>
               {approvers.map(a => (
                 <SelectItem key={a.id} value={a.id}>
                   {a.full_name ?? a.id}
@@ -77,30 +79,30 @@ export default function DelegateForm({
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-gray-400">代理期间，该人员将接收所有审批通知</p>
+          <p className="text-xs text-gray-400">{t('adminSettings.delegateNotifyDesc')}</p>
         </div>
 
         <div className="space-y-1.5 max-w-xs">
-          <Label htmlFor="delegate_until">代理到期日</Label>
+          <Label htmlFor="delegate_until">{t('adminSettings.delegateExpiry')}</Label>
           <Input
             id="delegate_until"
             name="delegate_until"
             type="date"
             defaultValue={data.delegate_until ?? ''}
           />
-          <p className="text-xs text-gray-400">留空表示无期限代理</p>
+          <p className="text-xs text-gray-400">{t('adminSettings.delegateNoExpiry')}</p>
         </div>
       </div>
 
       {state && 'error' in state && (
-        <p className="text-sm text-red-600">{state.error}</p>
+        <p className="text-sm text-red-600">{t(state.error)}</p>
       )}
       {state && 'success' in state && state.success && (
-        <p className="text-sm text-green-600">✓ 已保存</p>
+        <p className="text-sm text-green-600">✓ {t('adminSettings.saved')}</p>
       )}
 
       <Button type="submit" disabled={pending}>
-        {pending ? '保存中...' : '保存'}
+        {pending ? t('common.saving') : t('common.save')}
       </Button>
     </form>
   )

@@ -4,6 +4,9 @@ import "./globals.css"
 import { ToastProvider } from "@/components/toast"
 import { createClient } from "@/lib/supabase/server"
 import AppSidebar from "@/components/app-sidebar"
+import { getLocale } from "@/i18n/get-locale"
+import { getDictionary } from "@/i18n/dictionary"
+import { LocaleProvider } from "@/i18n/context"
 
 const inter = Inter({
   variable: "--font-inter",
@@ -20,7 +23,7 @@ const notoSansSC = Noto_Sans_SC({
 
 export const metadata: Metadata = {
   title: "Hylink Finance Tracker",
-  description: "财务管理系统",
+  description: "Finance Management System",
 }
 
 export default async function RootLayout({
@@ -32,9 +35,11 @@ export default async function RootLayout({
   const { data: { user } } = await supabase.auth.getUser()
 
   const isAuthenticated = !!user
+  const locale = await getLocale()
+  const dictionary = await getDictionary(locale)
 
   return (
-    <html lang="zh-CN">
+    <html lang={locale === 'zh' ? 'zh-CN' : 'en'}>
       <body className={`${inter.variable} ${notoSansSC.variable} antialiased`}>
         {/* Decorative background — only visible in the content area */}
         <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none select-none" aria-hidden="true">
@@ -63,19 +68,21 @@ export default async function RootLayout({
           </svg>
         </div>
 
-        <ToastProvider>
-          {isAuthenticated ? (
-            <div className="flex min-h-screen">
-              <AppSidebar />
-              {/* Content area — offset by sidebar width on large screens */}
-              <div className="flex-1 min-w-0 lg:pl-[220px]">
-                {children}
+        <LocaleProvider dictionary={dictionary} locale={locale}>
+          <ToastProvider>
+            {isAuthenticated ? (
+              <div className="flex min-h-screen">
+                <AppSidebar />
+                {/* Content area — offset by sidebar width on large screens */}
+                <div className="flex-1 min-w-0 lg:pl-[220px]">
+                  {children}
+                </div>
               </div>
-            </div>
-          ) : (
-            children
-          )}
-        </ToastProvider>
+            ) : (
+              children
+            )}
+          </ToastProvider>
+        </LocaleProvider>
       </body>
     </html>
   )

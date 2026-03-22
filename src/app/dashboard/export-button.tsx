@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import { useTranslation } from '@/i18n/context'
 
 export default function ExportButton() {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
 
   const handleExport = async () => {
@@ -10,7 +12,7 @@ export default function ExportButton() {
     setLoading(true)
     try {
       const res = await fetch('/api/export-projects')
-      if (!res.ok) { alert('导出失败，请确认权限'); return }
+      if (!res.ok) { alert(t('errors.noPermission')); return }
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
@@ -32,7 +34,7 @@ export default function ExportButton() {
       disabled={loading}
       className="text-xs text-[#2B6CB0] border border-[#2B6CB0]/30 rounded-md px-3 py-1.5 hover:bg-[#2B6CB0]/5 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {loading ? '导出中...' : '导出报表 CSV'}
+      {loading ? t('common.loading') : t('common.exportCSV')}
     </button>
   )
 }

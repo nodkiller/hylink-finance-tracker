@@ -31,14 +31,14 @@ export async function inviteUser(
   formData: FormData
 ): Promise<ActionState> {
   const callerId = await assertSuperAdmin()
-  if (!callerId) return { error: '无权限（仅 Super Admin）' }
+  if (!callerId) return { error: 'errors.superAdminOnly' }
 
   const email = (formData.get('email') as string).trim()
   const full_name = (formData.get('full_name') as string).trim()
   const role = formData.get('role') as string
 
-  if (!email || !full_name) return { error: '请填写姓名和邮箱' }
-  if (!VALID_ROLES.includes(role)) return { error: '无效角色' }
+  if (!email || !full_name) return { error: 'errors.fillNameEmail' }
+  if (!VALID_ROLES.includes(role)) return { error: 'errors.invalidRole' }
 
   const db = adminClient()
   const { data, error } = await db.auth.admin.inviteUserByEmail(email, {
@@ -64,13 +64,13 @@ export async function updateUserRole(
   formData: FormData
 ): Promise<ActionState> {
   const callerId = await assertSuperAdmin()
-  if (!callerId) return { error: '无权限（仅 Super Admin）' }
+  if (!callerId) return { error: 'errors.superAdminOnly' }
 
   const target_id = formData.get('user_id') as string
   const role = formData.get('role') as string
 
-  if (!VALID_ROLES.includes(role)) return { error: '无效角色' }
-  if (target_id === callerId) return { error: '无法修改自己的角色' }
+  if (!VALID_ROLES.includes(role)) return { error: 'errors.invalidRole' }
+  if (target_id === callerId) return { error: 'errors.cannotChangeOwnRole' }
 
   const db = adminClient()
   const { error } = await db.from('profiles').update({ role }).eq('id', target_id)
@@ -85,15 +85,15 @@ export async function suspendUser(
   formData: FormData
 ): Promise<ActionState> {
   const callerId = await assertSuperAdmin()
-  if (!callerId) return { error: '无权限（仅 Super Admin）' }
+  if (!callerId) return { error: 'errors.superAdminOnly' }
 
   const target_id = formData.get('user_id') as string
-  if (target_id === callerId) return { error: '无法停用自己的账号' }
+  if (target_id === callerId) return { error: 'errors.cannotSuspendOwn' }
 
   const db = adminClient()
   const { data: targetProfile } = await db
     .from('profiles').select('role').eq('id', target_id).single<{ role: string }>()
-  if (targetProfile?.role === 'Super Admin') return { error: '无法停用其他 Super Admin' }
+  if (targetProfile?.role === 'Super Admin') return { error: 'errors.cannotSuspendSuper' }
 
   const { error } = await db.auth.admin.updateUserById(target_id, {
     ban_duration: '87600h', // 10 years
@@ -109,7 +109,7 @@ export async function activateUser(
   formData: FormData
 ): Promise<ActionState> {
   const callerId = await assertSuperAdmin()
-  if (!callerId) return { error: '无权限（仅 Super Admin）' }
+  if (!callerId) return { error: 'errors.superAdminOnly' }
 
   const target_id = formData.get('user_id') as string
   const db = adminClient()
@@ -128,10 +128,10 @@ export async function sendPasswordReset(
   formData: FormData
 ): Promise<ActionState> {
   const callerId = await assertSuperAdmin()
-  if (!callerId) return { error: '无权限（仅 Super Admin）' }
+  if (!callerId) return { error: 'errors.superAdminOnly' }
 
   const email = formData.get('email') as string
-  if (!email) return { error: '邮箱不能为空' }
+  if (!email) return { error: 'errors.emailEmpty' }
 
   // Use anon client — resetPasswordForEmail is a public auth endpoint
   const anonClient = createAdmin(

@@ -1,6 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getServerT } from '@/i18n/use-server-t'
 
 import SettingsForm from './settings-form'
 import OverdueForm from './overdue-form'
@@ -20,6 +21,7 @@ type FullSettings = {
 }
 
 export default async function SettingsPage() {
+  const t = await getServerT()
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) redirect('/login')
@@ -71,44 +73,44 @@ export default async function SettingsPage() {
 
   return (
     <main className="max-w-3xl mx-auto px-6 py-8 space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">审批设置</h1>
+        <h1 className="text-2xl font-bold text-gray-900">{t('adminSettings.title')}</h1>
 
         {/* Section 1: Approval Thresholds */}
         <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="mb-5">
-            <h2 className="font-semibold text-gray-900">付款自动审批阈值</h2>
+            <h2 className="font-semibold text-gray-900">{t('adminSettings.thresholdTitle')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              根据付款金额自动路由到对应审批层级。
+              {t('adminSettings.thresholdDesc')}
             </p>
           </div>
           {settings ? (
             <SettingsForm settings={settings} />
           ) : (
-            <p className="text-sm text-gray-400">加载失败</p>
+            <p className="text-sm text-gray-400">{t('errors.loadFailed')}</p>
           )}
         </section>
 
         {/* Section 2: Overdue Days */}
         <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="mb-5">
-            <h2 className="font-semibold text-gray-900">收款逾期预警</h2>
+            <h2 className="font-semibold text-gray-900">{t('adminSettings.overdueWarningTitle')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              未收款收入超过此天数后，Dashboard 将显示逾期预警。
+              {t('adminSettings.overdueWarningDesc')}
             </p>
           </div>
           {settings ? (
             <OverdueForm overdueDays={settings.overdue_days ?? 30} />
           ) : (
-            <p className="text-sm text-gray-400">加载失败</p>
+            <p className="text-sm text-gray-400">{t('errors.loadFailed')}</p>
           )}
         </section>
 
         {/* Section 3: Default + Per-brand Approver */}
         <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="mb-5">
-            <h2 className="font-semibold text-gray-900">项目审批人设置</h2>
+            <h2 className="font-semibold text-gray-900">{t('adminSettings.approverTitle')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              指定默认审批人，或按品牌单独设置审批人。
+              {t('adminSettings.approverDesc')}
             </p>
           </div>
           <ApproverForm
@@ -121,9 +123,9 @@ export default async function SettingsPage() {
         {/* Section 4: Delegate Approver */}
         <section className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
           <div className="mb-5">
-            <h2 className="font-semibold text-gray-900">审批代理</h2>
+            <h2 className="font-semibold text-gray-900">{t('adminSettings.delegateTitle')}</h2>
             <p className="text-sm text-gray-500 mt-1">
-              审批人休假时，可指定代理人临时接管审批职责。
+              {t('adminSettings.delegateDesc')}
             </p>
           </div>
           {settings ? (
@@ -136,7 +138,7 @@ export default async function SettingsPage() {
               }}
             />
           ) : (
-            <p className="text-sm text-gray-400">加载失败</p>
+            <p className="text-sm text-gray-400">{t('errors.loadFailed')}</p>
           )}
         </section>
     </main>

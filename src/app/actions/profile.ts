@@ -25,17 +25,17 @@ export async function updateDisplayName(
   formData: FormData
 ): Promise<ActionState> {
   const user = await getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const full_name = (formData.get('full_name') as string).trim()
-  if (!full_name) return { error: '姓名不能为空' }
+  if (!full_name) return { error: 'errors.nameEmpty' }
 
   const db = adminClient()
   const { error } = await db.from('profiles').update({ full_name }).eq('id', user.id)
   if (error) return { error: error.message }
 
   revalidatePath('/profile')
-  return { success: '姓名已更新' }
+  return { success: 'profile.nameUpdated' }
 }
 
 export async function updateEmail(
@@ -43,11 +43,11 @@ export async function updateEmail(
   formData: FormData
 ): Promise<ActionState> {
   const user = await getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const email = (formData.get('email') as string).trim().toLowerCase()
-  if (!email || !email.includes('@')) return { error: '请输入有效邮箱' }
-  if (email === user.email) return { error: '新邮箱与当前邮箱相同' }
+  if (!email || !email.includes('@')) return { error: 'errors.invalidEmail' }
+  if (email === user.email) return { error: 'errors.emailSame' }
 
   const db = adminClient()
   const { error } = await db.auth.admin.updateUserById(user.id, {
@@ -57,7 +57,7 @@ export async function updateEmail(
   if (error) return { error: error.message }
 
   revalidatePath('/profile')
-  return { success: '邮箱已更新，请用新邮箱重新登录' }
+  return { success: 'profile.emailUpdated' }
 }
 
 export async function updatePassword(
@@ -65,18 +65,18 @@ export async function updatePassword(
   formData: FormData
 ): Promise<ActionState> {
   const user = await getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const password = formData.get('password') as string
   const confirm  = formData.get('confirm') as string
 
-  if (!password) return { error: '请输入新密码' }
-  if (password.length < 8) return { error: '密码至少 8 位' }
-  if (password !== confirm) return { error: '两次密码输入不一致' }
+  if (!password) return { error: 'errors.enterPassword' }
+  if (password.length < 8) return { error: 'errors.passwordMin8' }
+  if (password !== confirm) return { error: 'errors.passwordsNotMatch' }
 
   const db = adminClient()
   const { error } = await db.auth.admin.updateUserById(user.id, { password })
   if (error) return { error: error.message }
 
-  return { success: '密码已更新' }
+  return { success: 'profile.passwordUpdated' }
 }

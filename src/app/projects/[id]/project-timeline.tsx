@@ -1,3 +1,7 @@
+'use client'
+
+import { useTranslation } from '@/i18n/context'
+
 export interface TimelineEvent {
   id: string
   date: string
@@ -23,28 +27,30 @@ const TEXT_COLORS: Record<string, string> = {
   gray:  'text-gray-600',
 }
 
-function fmtDateTime(d: string) {
-  return new Date(d).toLocaleString('zh-CN', {
-    year: 'numeric', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
-  })
-}
-
 interface Props {
   events: TimelineEvent[]
 }
 
 export default function ProjectTimeline({ events }: Props) {
+  const { t, locale } = useTranslation()
+
   if (events.length === 0) return null
 
   const sorted = [...events].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )
 
+  const fmtDateTime = (d: string) => {
+    return new Date(d).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-AU', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    })
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">项目时间线</h2>
+        <h2 className="font-semibold text-gray-900">{t('projects.projectTimeline')}</h2>
       </div>
 
       <div className="px-5 py-5">

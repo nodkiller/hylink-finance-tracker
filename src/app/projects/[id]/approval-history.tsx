@@ -1,3 +1,7 @@
+'use client'
+
+import { useTranslation } from '@/i18n/context'
+
 export interface ApprovalRecord {
   id: string
   action: 'approved' | 'rejected'
@@ -11,12 +15,14 @@ interface Props {
 }
 
 export default function ApprovalHistory({ approvals }: Props) {
+  const { t, locale } = useTranslation()
+
   if (approvals.length === 0) return null
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-900">审批记录</h2>
+        <h2 className="font-semibold text-gray-900">{t('projects.approvalHistory')}</h2>
       </div>
       <div className="divide-y divide-gray-50">
         {approvals.map(a => (
@@ -29,12 +35,12 @@ export default function ApprovalHistory({ approvals }: Props) {
                 <span className={`text-sm font-medium ${
                   a.action === 'approved' ? 'text-[#38A169]' : 'text-[#E53E3E]'
                 }`}>
-                  {a.action === 'approved' ? '已批准' : '已驳回'}
+                  {a.action === 'approved' ? t('common.approved') : t('common.rejected')}
                 </span>
                 <span className="text-xs text-gray-400">{a.approver_name}</span>
-                <span className="text-xs text-gray-300">·</span>
+                <span className="text-xs text-gray-300">&middot;</span>
                 <span className="text-xs text-gray-400">
-                  {new Date(a.created_at).toLocaleString('zh-CN', {
+                  {new Date(a.created_at).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-AU', {
                     year: 'numeric', month: '2-digit', day: '2-digit',
                     hour: '2-digit', minute: '2-digit',
                   })}

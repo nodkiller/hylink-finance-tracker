@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTranslation } from '@/i18n/context'
 import {
   Select,
   SelectContent,
@@ -49,12 +50,12 @@ const STATUS_TEXT: Record<string, string> = {
   'Rejected':         'text-[#E53E3E]',
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  'Active':           '进行中',
-  'Pending Approval': '待审批',
-  'Completed':        '已完成',
-  'Reconciled':       '已对账',
-  'Rejected':         '已拒绝',
+const STATUS_KEYS: Record<string, string> = {
+  'Active':           'status.active',
+  'Pending Approval': 'status.pendingApproval',
+  'Completed':        'status.completed',
+  'Reconciled':       'status.reconciled',
+  'Rejected':         'status.rejected',
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -63,8 +64,23 @@ function fmt(n: number) {
   return `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
 }
 
-function exportCSV(rows: ProjectRow[]) {
-  const headers = ['项目代码', '品牌', '项目名称', '类型', '预估收入', '实际总收入', '实际总支出', '利润', '状态', '创建时间']
+function getExportHeaders(t: (key: string) => string) {
+  return [
+    t('projects.projectCode'),
+    t('projects.brand'),
+    t('projects.projectName'),
+    t('common.type'),
+    t('projects.estimatedRevenue'),
+    t('projects.actualRevenue'),
+    t('projects.actualExpenses'),
+    t('projects.profit'),
+    t('common.status'),
+    t('common.createdAt'),
+  ]
+}
+
+function exportCSV(rows: ProjectRow[], t: (key: string) => string) {
+  const headers = getExportHeaders(t)
   const csvRows = rows.map(p => {
     const profit = p.total_revenue - p.total_expenses
     return [
@@ -137,6 +153,7 @@ function SortTh({
 
 export default function ProjectsTable({ projects, brands }: Props) {
   const router = useRouter()
+  const { t, locale } = useTranslation()
 
   // Filters
   const [brandFilter, setBrandFilter] = useState('all')
@@ -243,6 +260,13 @@ export default function ProjectsTable({ projects, brands }: Props) {
     resetPage()
   }
 
+  const fmtMonth = (m: string) => {
+    if (locale === 'zh') return m.replace('-', ' \u5e74 ') + ' \u6708'
+    const [y, mo] = m.split('-')
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    return `${monthNames[parseInt(mo) - 1]} ${y}`
+  }
+
   return (
     <div className="space-y-4">
       {/* ── Filter panel ── */}
@@ -254,13 +278,13 @@ export default function ProjectsTable({ projects, brands }: Props) {
         >
           <span className="flex items-center gap-2">
             <SlidersHorizontal size={14} className="text-gray-400" />
-            筛选条件
+            {t('projects.filters')}
             {hasFilters && (
-              <span className="bg-[#2B6CB0] text-white text-xs px-1.5 py-0.5 rounded-full">已筛选</span>
+              <span className="bg-[#2B6CB0] text-white text-xs px-1.5 py-0.5 rounded-full">{t('projects.filtered')}</span>
             )}
           </span>
           <span className="flex items-center gap-2 text-xs text-gray-400">
-            {filtered.length} 个项目
+            {t('projects.projectCount').replace('{count}', String(filtered.length))}
             <ChevronDown size={14} className={`transition-transform ${filtersOpen ? 'rotate-180' : ''}`} />
           </span>
         </button>
@@ -271,10 +295,10 @@ export default function ProjectsTable({ projects, brands }: Props) {
             {/* Brand */}
             <Select value={brandFilter} onValueChange={v => { if (v) { setBrandFilter(v); resetPage() } }}>
               <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="全部品牌" />
+                <SelectValue placeholder={t('projects.allBrands')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部品牌</SelectItem>
+                <SelectItem value="all">{t('projects.allBrands')}</SelectItem>
                 {brands.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -282,15 +306,15 @@ export default function ProjectsTable({ projects, brands }: Props) {
             {/* Status */}
             <Select value={statusFilter} onValueChange={v => { if (v) { setStatusFilter(v); resetPage() } }}>
               <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="全部状态" />
+                <SelectValue placeholder={t('projects.allStatuses')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部状态</SelectItem>
+                <SelectItem value="all">{t('projects.allStatuses')}</SelectItem>
                 {allStatuses.map(s => (
                   <SelectItem key={s} value={s}>
                     <span className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${STATUS_DOT[s] ?? 'bg-gray-400'}`} />
-                      {STATUS_LABELS[s] ?? s}
+                      {t(STATUS_KEYS[s] ?? `status.${s}`)}
                     </span>
                   </SelectItem>
                 ))}
@@ -300,23 +324,23 @@ export default function ProjectsTable({ projects, brands }: Props) {
             {/* Type */}
             <Select value={typeFilter} onValueChange={v => { if (v) { setTypeFilter(v); resetPage() } }}>
               <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="全部类型" />
+                <SelectValue placeholder={t('projects.allTypes')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部类型</SelectItem>
-                {allTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                <SelectItem value="all">{t('projects.allTypes')}</SelectItem>
+                {allTypes.map(tp => <SelectItem key={tp} value={tp}>{tp}</SelectItem>)}
               </SelectContent>
             </Select>
 
             {/* Month */}
             <Select value={monthFilter} onValueChange={v => { if (v) { setMonthFilter(v); setDateFrom(''); setDateTo(''); resetPage() } }}>
               <SelectTrigger className="w-32 h-8 text-xs">
-                <SelectValue placeholder="全部月份" />
+                <SelectValue placeholder={t('projects.allMonths')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">全部月份</SelectItem>
+                <SelectItem value="all">{t('projects.allMonths')}</SelectItem>
                 {allMonths.map(m => (
-                  <SelectItem key={m} value={m}>{m.replace('-', ' 年 ') + ' 月'}</SelectItem>
+                  <SelectItem key={m} value={m}>{fmtMonth(m)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -341,30 +365,30 @@ export default function ProjectsTable({ projects, brands }: Props) {
 
             {hasFilters && (
               <button onClick={clearFilters} className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition-colors">
-                清除筛选
+                {t('common.clearFilters')}
               </button>
             )}
 
             <div className="ml-auto hidden md:flex items-center gap-3">
               <span className="text-xs text-gray-400">
-                {filtered.length} 个项目{filtered.length < projects.length ? `（共 ${projects.length}）` : ''}
+                {t('projects.projectCount').replace('{count}', String(filtered.length))}{filtered.length < projects.length ? t('projects.projectCountOf').replace('{total}', String(projects.length)) : ''}
               </span>
               <button
-                onClick={() => exportCSV(filtered)}
+                onClick={() => exportCSV(filtered, t)}
                 className="text-xs text-[#2B6CB0] border border-[#2B6CB0]/30 rounded-lg px-3 py-1.5 hover:bg-[#2B6CB0]/5 transition-colors font-medium"
               >
-                导出 CSV
+                {t('common.exportCSV')}
               </button>
             </div>
           </div>
 
           {/* Estimated revenue range — hidden on mobile */}
           <div className="hidden md:flex items-center gap-2">
-            <span className="text-xs text-gray-500 shrink-0">预估收入范围：</span>
+            <span className="text-xs text-gray-500 shrink-0">{t('projects.revenueRange')}:</span>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
-                placeholder="最小金额"
+                placeholder={t('projects.minAmount')}
                 value={amountMin}
                 min={0}
                 onChange={e => { setAmountMin(e.target.value); resetPage() }}
@@ -373,7 +397,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
               <span className="text-gray-300 text-xs">—</span>
               <input
                 type="number"
-                placeholder="最大金额"
+                placeholder={t('projects.maxAmount')}
                 value={amountMax}
                 min={0}
                 onChange={e => { setAmountMax(e.target.value); resetPage() }}
@@ -386,10 +410,10 @@ export default function ProjectsTable({ projects, brands }: Props) {
           {/* Mobile: CSV export */}
           <div className="flex md:hidden justify-between items-center pt-1">
             <button
-              onClick={() => exportCSV(filtered)}
+              onClick={() => exportCSV(filtered, t)}
               className="text-xs text-[#2B6CB0] border border-[#2B6CB0]/30 rounded-lg px-3 py-1.5 hover:bg-[#2B6CB0]/5 transition-colors font-medium"
             >
-              导出 CSV
+              {t('common.exportCSV')}
             </button>
           </div>
         </div>
@@ -399,25 +423,25 @@ export default function ProjectsTable({ projects, brands }: Props) {
       {filtered.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-xs text-gray-400 mb-1">预估总收入</p>
+            <p className="text-xs text-gray-400 mb-1">{t('projects.totalEstRevenue')}</p>
             <p className="text-lg font-bold text-gray-600">{fmt(summary.estRev)}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-xs text-gray-400 mb-1">实际总收入</p>
+            <p className="text-xs text-gray-400 mb-1">{t('projects.totalActRevenue')}</p>
             <p className="text-lg font-bold text-[#38A169]">{fmt(summary.actRev)}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-xs text-gray-400 mb-1">实际总支出</p>
+            <p className="text-xs text-gray-400 mb-1">{t('projects.totalActExpenses')}</p>
             <p className="text-lg font-bold text-[#E53E3E]">{fmt(summary.actExp)}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-3">
-            <p className="text-xs text-gray-400 mb-1">总利润</p>
+            <p className="text-xs text-gray-400 mb-1">{t('projects.totalProfit')}</p>
             <p className={`text-lg font-bold ${summary.profit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`}>
               {fmt(summary.profit)}
             </p>
             {summary.actRev > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">
-                毛利率 {((summary.profit / summary.actRev) * 100).toFixed(1)}%
+                {t('projects.profitMarginLabel')} {((summary.profit / summary.actRev) * 100).toFixed(1)}%
               </p>
             )}
           </div>
@@ -428,7 +452,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
       <div className="md:hidden space-y-2">
         {pageRows.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-4 py-10 text-center text-gray-400 text-sm">
-            暂无符合条件的项目
+            {t('projects.noMatchingProjects')}
           </div>
         ) : pageRows.map(p => {
           const profit = p.total_revenue - p.total_expenses
@@ -452,7 +476,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
                 <div className="flex items-center gap-1.5 shrink-0">
                   <span className={`inline-flex items-center gap-1 text-xs font-medium ${STATUS_TEXT[p.status] ?? 'text-gray-500'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${STATUS_DOT[p.status] ?? 'bg-gray-400'}`} />
-                    {STATUS_LABELS[p.status] ?? p.status}
+                    {t(STATUS_KEYS[p.status] ?? `status.${p.status}`)}
                   </span>
                   <ChevronRight size={14} className="text-gray-300" />
                 </div>
@@ -460,15 +484,15 @@ export default function ProjectsTable({ projects, brands }: Props) {
               {hasFinancials && (
                 <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-50">
                   <div>
-                    <p className="text-xs text-gray-400 mb-0.5">收入</p>
+                    <p className="text-xs text-gray-400 mb-0.5">{t('dashboard.revenue')}</p>
                     <p className="text-xs font-mono font-semibold text-[#38A169]">{fmt(p.total_revenue)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-0.5">支出</p>
+                    <p className="text-xs text-gray-400 mb-0.5">{t('dashboard.expenses')}</p>
                     <p className="text-xs font-mono font-semibold text-[#E53E3E]">{fmt(p.total_expenses)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-0.5">利润</p>
+                    <p className="text-xs text-gray-400 mb-0.5">{t('dashboard.profit')}</p>
                     <p className={`text-xs font-mono font-semibold ${profit >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}`}>{fmt(profit)}</p>
                   </div>
                 </div>
@@ -485,7 +509,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
               disabled={safePage === 0}
               className="px-4 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors"
             >
-              ← 上一页
+              {`\u2190 ${t('common.prev')}`}
             </button>
             <span className="text-xs text-gray-400">{safePage + 1} / {totalPages}</span>
             <button
@@ -493,7 +517,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
               disabled={safePage === totalPages - 1}
               className="px-4 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors"
             >
-              下一页 →
+              {`${t('common.next')} \u2192`}
             </button>
           </div>
         )}
@@ -505,31 +529,31 @@ export default function ProjectsTable({ projects, brands }: Props) {
           <thead className="border-b border-gray-100" style={{ backgroundColor: '#F7FAFC' }}>
             <tr>
               <SortTh col="project_code" activeCol={sortCol} dir={sortDir} onSort={handleSort} className="w-36 text-xs">
-                项目代码
+                {t('projects.projectCode')}
               </SortTh>
               <SortTh col="brand_name" activeCol={sortCol} dir={sortDir} onSort={handleSort} className="w-20 text-xs">
-                品牌
+                {t('projects.brand')}
               </SortTh>
               <SortTh col="name" activeCol={sortCol} dir={sortDir} onSort={handleSort} className="text-xs">
-                项目名称
+                {t('projects.projectName')}
               </SortTh>
               <SortTh col="type" activeCol={sortCol} dir={sortDir} onSort={handleSort} className="w-24 text-xs">
-                类型
+                {t('common.type')}
               </SortTh>
               <SortTh col="status" activeCol={sortCol} dir={sortDir} onSort={handleSort} className="w-28 text-xs">
-                状态
+                {t('common.status')}
               </SortTh>
               <SortTh col="estimated_revenue" activeCol={sortCol} dir={sortDir} onSort={handleSort} align="right" className="w-28 text-xs">
-                预估收入
+                {t('projects.estimatedRevenue')}
               </SortTh>
               <SortTh col="total_revenue" activeCol={sortCol} dir={sortDir} onSort={handleSort} align="right" className="w-28 text-xs">
-                实际收入
+                {t('projects.actualRevenue')}
               </SortTh>
               <SortTh col="total_expenses" activeCol={sortCol} dir={sortDir} onSort={handleSort} align="right" className="w-28 text-xs">
-                实际支出
+                {t('projects.actualExpenses')}
               </SortTh>
               <SortTh col="profit" activeCol={sortCol} dir={sortDir} onSort={handleSort} align="right" className="w-28 text-xs">
-                利润
+                {t('projects.profit')}
               </SortTh>
             </tr>
           </thead>
@@ -545,7 +569,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
                   onClick={() => router.push(`/projects/${p.id}`)}
                 >
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                    {p.project_code ?? <span className="text-gray-300 italic text-xs">待分配</span>}
+                    {p.project_code ?? <span className="text-gray-300 italic text-xs">{t('projects.pendingAssignment')}</span>}
                   </td>
                   <td className="px-4 py-3 text-xs font-medium text-gray-700">{p.brand_name}</td>
                   <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px] truncate">{p.name}</td>
@@ -553,7 +577,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
                   <td className="px-4 py-3">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${STATUS_TEXT[p.status] ?? 'text-gray-500'}`}>
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${STATUS_DOT[p.status] ?? 'bg-gray-400'}`} />
-                      {STATUS_LABELS[p.status] ?? p.status}
+                      {t(STATUS_KEYS[p.status] ?? `status.${p.status}`)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-xs text-gray-500">
@@ -578,7 +602,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
             {pageRows.length === 0 && (
               <tr>
                 <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">
-                  暂无符合条件的项目
+                  {t('projects.noMatchingProjects')}
                 </td>
               </tr>
             )}
@@ -589,7 +613,7 @@ export default function ProjectsTable({ projects, brands }: Props) {
         {totalPages > 1 && (
           <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
             <span className="text-xs text-gray-400">
-              第 {safePage + 1} 页，共 {totalPages} 页（{filtered.length} 条）
+              {t('projects.paginationInfo').replace('{page}', String(safePage + 1)).replace('{total}', String(totalPages)).replace('{count}', String(filtered.length))}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -597,14 +621,14 @@ export default function ProjectsTable({ projects, brands }: Props) {
                 disabled={safePage === 0}
                 className="px-2 py-1 text-xs rounded-md text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                «
+                &laquo;
               </button>
               <button
                 onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={safePage === 0}
                 className="px-2.5 py-1 text-xs rounded-md text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                ‹
+                &lsaquo;
               </button>
 
               {/* Page number pills */}
@@ -631,14 +655,14 @@ export default function ProjectsTable({ projects, brands }: Props) {
                 disabled={safePage >= totalPages - 1}
                 className="px-2.5 py-1 text-xs rounded-md text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                ›
+                &rsaquo;
               </button>
               <button
                 onClick={() => setPage(totalPages - 1)}
                 disabled={safePage >= totalPages - 1}
                 className="px-2 py-1 text-xs rounded-md text-gray-500 hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
-                »
+                &raquo;
               </button>
             </div>
           </div>

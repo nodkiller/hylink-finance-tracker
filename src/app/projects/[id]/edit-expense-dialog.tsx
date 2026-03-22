@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { useRouter } from 'next/navigation'
 import { updateExpense, deleteExpense } from '@/app/actions/expenses'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ interface Props {
 
 export default function EditExpenseDialog({ expense }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
   const [isDeleting, startDeleteTransition] = useTransition()
@@ -81,42 +83,42 @@ export default function EditExpenseDialog({ expense }: Props) {
         onClick={() => { setOpen(true); setError(null); setShowDeleteConfirm(false) }}
         className="text-xs text-[#2B6CB0] hover:text-[#1a3555] hover:underline"
       >
-        编辑
+        {t('common.edit')}
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>编辑支出记录</DialogTitle>
+            <DialogTitle>{t('expenses.editExpenseRecord')}</DialogTitle>
           </DialogHeader>
 
           {!showDeleteConfirm ? (
             <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <Label htmlFor="ee-payee">
-                  收款方 / 供应商 <span className="text-red-500">*</span>
+                  {t('expenses.payee')} <span className="text-red-500">*</span>
                 </Label>
                 <Input id="ee-payee" name="payee" defaultValue={expense.payee} required />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ee-inv">
-                  供应商发票号 <span className="text-red-500">*</span>
+                  {t('expenses.vendorInvoice')} <span className="text-red-500">*</span>
                 </Label>
                 <Input id="ee-inv" name="invoice_number" defaultValue={expense.invoice_number} required />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ee-desc">
-                  支出用途 <span className="text-red-500">*</span>
+                  {t('expenses.expensePurpose')} <span className="text-red-500">*</span>
                 </Label>
                 <Textarea id="ee-desc" name="description" defaultValue={expense.description} rows={2} required />
               </div>
 
               <div className="space-y-1.5">
                 <Label htmlFor="ee-amt">
-                  金额 (AUD) <span className="text-red-500">*</span>
-                  {isPaid && <span className="ml-2 text-xs font-normal text-gray-400">已付款，金额仅作记录修正</span>}
+                  {t('expenses.amountAUD')} <span className="text-red-500">*</span>
+                  {isPaid && <span className="ml-2 text-xs font-normal text-gray-400">{t('expenses.paidAmountNote')}</span>}
                 </Label>
                 <Input
                   id="ee-amt"
@@ -130,7 +132,7 @@ export default function EditExpenseDialog({ expense }: Props) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ee-date">付款日期</Label>
+                <Label htmlFor="ee-date">{t('expenses.paymentDueDate')}</Label>
                 <Input
                   id="ee-date"
                   name="payment_date"
@@ -140,7 +142,7 @@ export default function EditExpenseDialog({ expense }: Props) {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="ee-file">更换发票附件（选填）</Label>
+                <Label htmlFor="ee-file">{t('expenses.replaceAttachment')}</Label>
                 <Input
                   id="ee-file"
                   ref={fileRef}
@@ -154,7 +156,7 @@ export default function EditExpenseDialog({ expense }: Props) {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-500 hover:underline"
                 >
-                  查看当前附件 ↗
+                  {t('expenses.viewCurrentAttachment')}
                 </a>
               </div>
 
@@ -166,14 +168,14 @@ export default function EditExpenseDialog({ expense }: Props) {
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-xs text-red-500 hover:text-red-700 hover:underline"
                 >
-                  删除此记录
+                  {t('expenses.deleteRecord')}
                 </button>
                 <div className="flex gap-2">
                   <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)} disabled={isPending}>
-                    取消
+                    {t('common.cancel')}
                   </Button>
                   <Button type="submit" size="sm" disabled={isPending}>
-                    {isPending ? '保存中...' : '保存修改'}
+                    {isPending ? t('common.saving') : t('common.saveChanges')}
                   </Button>
                 </div>
               </div>
@@ -181,17 +183,17 @@ export default function EditExpenseDialog({ expense }: Props) {
           ) : (
             <div className="space-y-4 pt-2">
               <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-3 text-sm text-red-700">
-                确定删除这条支出记录吗？
-                <p className="font-medium mt-1">{expense.payee} · A${Number(expense.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</p>
-                <p className="text-xs mt-1 text-red-500">此操作不可恢复。</p>
+                {t('expenses.deleteExpenseConfirm')}
+                <p className="font-medium mt-1">{expense.payee} &middot; A${Number(expense.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}</p>
+                <p className="text-xs mt-1 text-red-500">{t('expenses.cannotUndo')}</p>
               </div>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
-                  返回
+                  {t('common.back')}
                 </Button>
                 <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isDeleting}>
-                  {isDeleting ? '删除中...' : '确认删除'}
+                  {isDeleting ? t('common.deleting') : t('common.confirmDelete')}
                 </Button>
               </div>
             </div>

@@ -1,6 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getServerT } from '@/i18n/use-server-t'
 
 import UsersTable, { type UserRow } from './users-table'
 import InviteUserDialog from './invite-user-dialog'
@@ -11,6 +12,7 @@ function isSuspended(bannedUntil?: string | null): boolean {
 }
 
 export default async function AdminUsersPage() {
+  const t = await getServerT()
   const authClient = await createClient()
   const { data: { user: me } } = await authClient.auth.getUser()
   if (!me) redirect('/login')
@@ -61,10 +63,10 @@ export default async function AdminUsersPage() {
     <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">用户管理</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('adminUsers.title')}</h1>
             <p className="text-sm text-gray-400 mt-1">
-              共 {users.length} 名用户 · {activeCount} 启用
-              {suspendedCount > 0 && ` · ${suspendedCount} 停用`}
+              {t('adminUsers.userCount').replace('{total}', String(users.length)).replace('{active}', String(activeCount))}
+              {suspendedCount > 0 && ` · ${t('adminUsers.suspended').replace('{count}', String(suspendedCount))}`}
             </p>
           </div>
           <InviteUserDialog />
@@ -72,15 +74,15 @@ export default async function AdminUsersPage() {
 
         {/* Role legend */}
         <div className="flex items-center gap-4 text-xs text-gray-400">
-          <span className="font-medium text-gray-500">角色说明：</span>
+          <span className="font-medium text-gray-500">{t('adminUsers.roleDescription')}</span>
           <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 font-medium">Super Admin</span>
-          <span className="text-gray-300">全部权限</span>
+          <span className="text-gray-300">{t('adminUsers.fullPermissions')}</span>
           <span className="px-2 py-0.5 rounded bg-[#2B6CB0]/10 text-[#2B6CB0] border border-[#2B6CB0]/20 font-medium">Controller</span>
-          <span className="text-gray-300">审批 + 全项目</span>
+          <span className="text-gray-300">{t('adminUsers.approvalAllProjects')}</span>
           <span className="px-2 py-0.5 rounded bg-[#38A169]/10 text-[#38A169] border border-[#38A169]/20 font-medium">PM</span>
-          <span className="text-gray-300">创建 + 收支</span>
+          <span className="text-gray-300">{t('adminUsers.createRevenueExpense')}</span>
           <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-500 border border-gray-200 font-medium">Viewer</span>
-          <span className="text-gray-300">只读</span>
+          <span className="text-gray-300">{t('adminUsers.readOnly')}</span>
         </div>
 
         <UsersTable users={users} />

@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
+import { useTranslation } from '@/i18n/context'
 
 export interface BrandBarData {
   name: string
@@ -24,26 +25,28 @@ function fmtY(n: number) {
   return `A$${n}`
 }
 
-function CustomTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
-      <p style={{ color: '#2B6CB0' }}>
-        已收款收入:{' '}
-        <span className="font-medium">
-          A${Number(payload[0].value).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
-        </span>
-      </p>
-    </div>
-  )
-}
-
 export default function BrandBarChart({ data }: Props) {
+  const { t } = useTranslation()
+
+  function CustomTooltip({ active, payload, label }: any) {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="bg-white border border-gray-100 shadow-lg rounded-lg px-3 py-2 text-xs">
+        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+        <p style={{ color: '#2B6CB0' }}>
+          {t('dashboard.revenue')}:{' '}
+          <span className="font-medium">
+            A${Number(payload[0].value).toLocaleString('en-AU', { minimumFractionDigits: 2 })}
+          </span>
+        </p>
+      </div>
+    )
+  }
+
   if (!data.length) {
     return (
       <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">
-        暂无数据
+        {t('common.noData')}
       </div>
     )
   }

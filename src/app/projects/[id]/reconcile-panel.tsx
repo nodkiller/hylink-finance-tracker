@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { useRouter } from 'next/navigation'
 import { reconcileProject, completeProject } from '@/app/actions/projects'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ function CheckRow({ ok, label }: { ok: boolean; label: string }) {
   return (
     <div className="flex items-center gap-2 text-sm">
       <span className={ok ? 'text-[#38A169]' : 'text-[#DD6B20]'}>
-        {ok ? '✓' : '○'}
+        {ok ? '\u2713' : '\u25cb'}
       </span>
       <span className={ok ? 'text-gray-600' : 'text-[#DD6B20]'}>{label}</span>
     </div>
@@ -45,6 +46,7 @@ export default function ReconcilePanel({
   pendingExpenseCount = 0,
 }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const profit = totalRevenue - totalExpenses
   const isReconciled = projectStatus === 'Reconciled'
   const isCompleted = projectStatus === 'Completed'
@@ -74,14 +76,14 @@ export default function ReconcilePanel({
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-900">对账面板</h2>
+          <h2 className="font-semibold text-gray-900">{t('reconcile.title')}</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            SOP：项目关闭后 1 个月内由 Controller 完成对账，确保财务闭环
+            {t('reconcile.sop')}
           </p>
         </div>
         {isReconciled && (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500 border border-gray-200">
-            已对账
+            {t('reconcile.reconciled')}
           </span>
         )}
       </div>
@@ -89,25 +91,25 @@ export default function ReconcilePanel({
       <div className="px-5 py-4 space-y-0">
         {/* Row 1: Estimated Revenue */}
         <div className="flex items-center justify-between py-3 border-b border-gray-50">
-          <span className="text-sm text-gray-500">预估收入</span>
+          <span className="text-sm text-gray-500">{t('reconcile.estimatedRevenue')}</span>
           <span className="text-sm font-medium text-gray-700 font-mono">{fmt(estimatedRevenue)}</span>
         </div>
 
         {/* Row 2: Actual Revenue */}
         <div className="flex items-center justify-between py-3 border-b border-gray-50">
-          <span className="text-sm text-gray-500">实际总收入</span>
+          <span className="text-sm text-gray-500">{t('reconcile.actualRevenue')}</span>
           <span className="text-sm font-medium text-gray-900 font-mono">{fmt(totalRevenue)}</span>
         </div>
 
         {/* Row 3: Actual Expenses */}
         <div className="flex items-center justify-between py-3 border-b border-gray-50">
-          <span className="text-sm text-gray-500">实际总支出</span>
+          <span className="text-sm text-gray-500">{t('reconcile.actualExpenses')}</span>
           <span className="text-sm font-medium text-gray-900 font-mono">{fmt(totalExpenses)}</span>
         </div>
 
         {/* Profit */}
         <div className="flex items-center justify-between py-3">
-          <span className="text-sm font-semibold text-gray-700">利润</span>
+          <span className="text-sm font-semibold text-gray-700">{t('reconcile.profit')}</span>
           <span className={`text-lg font-bold font-mono ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {fmt(profit)}
           </span>
@@ -117,18 +119,18 @@ export default function ReconcilePanel({
       {/* Pre-flight checklist — shown when Completed and canReconcile */}
       {isCompleted && canReconcile && (
         <div className="px-5 pb-4 space-y-1.5">
-          <p className="text-xs text-gray-400 mb-2">对账前检查</p>
+          <p className="text-xs text-gray-400 mb-2">{t('reconcile.preCheck')}</p>
           <CheckRow
             ok={revenueOk}
             label={revenueOk
-              ? '所有收入已收款'
-              : `${unpaidRevenueCount} 条收入未收款`}
+              ? t('reconcile.allRevenuePaid')
+              : t('reconcile.unpaidRevenueCount').replace('{count}', String(unpaidRevenueCount))}
           />
           <CheckRow
             ok={expenseOk}
             label={expenseOk
-              ? '所有支出已付款或已驳回'
-              : `${pendingExpenseCount} 条支出待处理`}
+              ? t('reconcile.allExpensesDone')
+              : t('reconcile.pendingExpenseCount').replace('{count}', String(pendingExpenseCount))}
           />
         </div>
       )}
@@ -144,7 +146,7 @@ export default function ReconcilePanel({
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-400">
-            {isReconciled ? '此项目已完成对账' : isCompleted ? '可执行对账操作' : isActive ? '完成项目后才可对账' : ''}
+            {isReconciled ? t('reconcile.projectReconciled') : isCompleted ? t('reconcile.canReconcile') : isActive ? t('reconcile.completeFirst') : ''}
           </p>
           <div className="flex items-center gap-2">
             {/* Step 1: Active → Completed */}
@@ -158,7 +160,7 @@ export default function ReconcilePanel({
                   variant="outline"
                   className="text-[#2B6CB0] border-[#2B6CB0]/30 hover:bg-[#2B6CB0]/5"
                 >
-                  {completePending ? '处理中...' : '标记为已完成'}
+                  {completePending ? t('common.processing') : t('reconcile.markCompleted')}
                 </Button>
               </form>
             )}
@@ -180,7 +182,7 @@ export default function ReconcilePanel({
                   }
                   variant="ghost"
                 >
-                  {isReconciled ? '已对账' : pending ? '处理中...' : '标记为已对账'}
+                  {isReconciled ? t('reconcile.reconciled') : pending ? t('common.processing') : t('reconcile.markReconciled')}
                 </Button>
               </form>
             )}

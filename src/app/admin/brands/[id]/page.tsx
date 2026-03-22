@@ -1,6 +1,7 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
+import { getServerT } from '@/i18n/use-server-t'
 import AppHeader from '@/components/app-header'
 import Link from 'next/link'
 
@@ -8,12 +9,13 @@ function fmt(n: number) {
   return `A$${n.toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  'Pending Approval': '待审批',
-  'Active': '进行中',
-  'Completed': '已完成',
-  'Reconciled': '已对账',
-  'Rejected': '已拒绝',
+// STATUS_LABELS will use t() from server translation
+const STATUS_KEYS: Record<string, string> = {
+  'Pending Approval': 'status.pendingApproval',
+  'Active': 'status.active',
+  'Completed': 'status.completed',
+  'Reconciled': 'status.reconciled',
+  'Rejected': 'status.rejected',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -30,6 +32,7 @@ export default async function BrandDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const t = await getServerT()
 
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -93,23 +96,23 @@ export default async function BrandDetailPage({
 
   return (
     <div className="min-h-screen">
-      <AppHeader title="品牌详情" />
+      <AppHeader title={t('adminBrands.brandDetail')} />
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-6">
         {/* Back + header */}
         <div>
           <Link href="/admin/brands" className="text-sm text-gray-400 hover:text-[#2B6CB0] transition-colors">
-            ← 返回品牌列表
+            ← {t('adminBrands.backToBrands')}
           </Link>
           <div className="flex items-center gap-3 mt-3">
             <h1 className="text-2xl font-bold text-gray-900">{brand.name}</h1>
             {brand.is_active ? (
               <span className="text-xs font-medium text-[#38A169] bg-[#38A169]/10 px-2 py-0.5 rounded border border-[#38A169]/25">
-                启用
+                {t('adminBrands.activate')}
               </span>
             ) : (
               <span className="text-xs font-medium text-[#E53E3E] bg-[#E53E3E]/10 px-2 py-0.5 rounded border border-[#E53E3E]/25">
-                停用
+                {t('adminBrands.deactivate')}
               </span>
             )}
           </div>
@@ -118,25 +121,25 @@ export default async function BrandDetailPage({
         {/* Summary KPIs */}
         <div className="grid grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-            <p className="text-xs text-gray-400 mb-1">项目总数</p>
+            <p className="text-xs text-gray-400 mb-1">{t('adminBrands.totalProjects')}</p>
             <p className="text-2xl font-bold text-gray-900">{(projects ?? []).length}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-            <p className="text-xs text-gray-400 mb-1">总收入（已收款）</p>
+            <p className="text-xs text-gray-400 mb-1">{t('adminBrands.totalRevenueReceived')}</p>
             <p className="text-xl font-bold text-[#38A169]">{fmt(totalRevenue)}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-            <p className="text-xs text-gray-400 mb-1">总支出（已批准）</p>
+            <p className="text-xs text-gray-400 mb-1">{t('adminBrands.totalExpensesApproved')}</p>
             <p className="text-xl font-bold text-[#E53E3E]">{fmt(totalExpenses)}</p>
           </div>
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
-            <p className="text-xs text-gray-400 mb-1">总利润</p>
+            <p className="text-xs text-gray-400 mb-1">{t('adminBrands.totalProfit')}</p>
             <p className={`text-xl font-bold ${totalProfit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`}>
               {fmt(totalProfit)}
             </p>
             {totalRevenue > 0 && (
               <p className="text-xs text-gray-400 mt-0.5">
-                毛利率 {((totalProfit / totalRevenue) * 100).toFixed(1)}%
+                {t('reports.grossMargin')} {((totalProfit / totalRevenue) * 100).toFixed(1)}%
               </p>
             )}
           </div>
@@ -145,21 +148,21 @@ export default async function BrandDetailPage({
         {/* Projects table */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">项目列表</h2>
-            <p className="text-xs text-gray-400 mt-0.5">共 {(projects ?? []).length} 个项目</p>
+            <h2 className="font-semibold text-gray-900">{t('adminBrands.projectList')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('reports.projectCount').replace('{count}', String((projects ?? []).length))}</p>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">项目代码</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">项目名称</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">类型</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">状态</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">预计收入</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">实收</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">支出</th>
-                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">利润</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">创建时间</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.projectCode')}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.projectName')}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.type')}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.status')}</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.estimatedRevenue')}</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('adminBrands.received')}</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalExpenses')}</th>
+                <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('projects.profit')}</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.createdAt')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -185,7 +188,7 @@ export default async function BrandDetailPage({
                     <td className="px-4 py-3 text-xs text-gray-500">{p.type}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${STATUS_COLORS[p.status] ?? ''}`}>
-                        {STATUS_LABELS[p.status] ?? p.status}
+                        {STATUS_KEYS[p.status] ? t(STATUS_KEYS[p.status]) : p.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-xs text-gray-500">
@@ -209,7 +212,7 @@ export default async function BrandDetailPage({
               {(projects ?? []).length === 0 && (
                 <tr>
                   <td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">
-                    该品牌暂无项目
+                    {t('adminBrands.noBrandProjects')}
                   </td>
                 </tr>
               )}

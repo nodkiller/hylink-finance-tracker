@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { useTranslation } from '@/i18n/context'
 import EmptyState from '@/components/empty-state'
 import { TrendingUpIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -53,14 +54,16 @@ function fmt(n: number) {
   return `A$${Number(n).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`
 }
 
-function fmtDate(d: string | null) {
-  if (!d) return '—'
-  return new Date(d).toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+function FmtDate({ d, locale }: { d: string | null; locale: string }) {
+  if (!d) return <>{'\u2014'}</>
+  const formatted = new Date(d).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-AU', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  return <>{formatted}</>
 }
 
 /** Clickable status badge for Unpaid/Overdue — one click marks as Paid with today's date */
 function MarkPaidBadge({ revenue }: { revenue: RevenueRecord }) {
   const router = useRouter()
+  const { t } = useTranslation()
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await markRevenuePaid(_prev, formData)
@@ -77,7 +80,7 @@ function MarkPaidBadge({ revenue }: { revenue: RevenueRecord }) {
         <button
           type="submit"
           disabled={pending}
-          title="点击标记已收款（收款日期设为今天）"
+          title={t('revenue.markAsPaidTooltip')}
           className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border cursor-pointer transition-opacity hover:opacity-70 disabled:opacity-40 ${STATUS_STYLES[revenue.status] ?? ''}`}
         >
           {pending ? '...' : revenue.status}
@@ -92,6 +95,7 @@ function MarkPaidBadge({ revenue }: { revenue: RevenueRecord }) {
 
 export default function RevenueSection({ projectId, revenues, canEdit, isSuperAdmin }: Props) {
   const router = useRouter()
+  const { t, locale } = useTranslation()
   const { toast } = useToast()
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState('Unpaid')
@@ -104,7 +108,7 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
     if (result && 'success' in result && result.success) {
       setOpen(false)
       setStatus('Unpaid')
-      toast('收入记录已添加', 'success')
+      toast(t('revenue.revenueAdded'), 'success')
       router.refresh()
     }
     return result
@@ -120,14 +124,19 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
   // Whether to show the operations column at all
   const showOpsCol = canEdit
 
+  const fmtDate = (d: string | null) => {
+    if (!d) return '\u2014'
+    return new Date(d).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-AU', { year: 'numeric', month: '2-digit', day: '2-digit' })
+  }
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="font-semibold text-gray-900">收入</h2>
+        <h2 className="font-semibold text-gray-900">{t('revenue.title')}</h2>
         {canEdit && (
           <Button size="sm" onClick={() => setOpen(true)} className="h-7 text-xs px-3">
-            + 新增收入
+            {t('revenue.addRevenue')}
           </Button>
         )}
       </div>
@@ -135,15 +144,15 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
       {/* Summary cards */}
       <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100">
         <div className="px-5 py-3">
-          <p className="text-xs text-gray-400 mb-0.5">总金额</p>
+          <p className="text-xs text-gray-400 mb-0.5">{t('revenue.totalAmount')}</p>
           <p className="text-lg font-semibold text-gray-900">{fmt(totalAmount)}</p>
         </div>
         <div className="px-5 py-3">
-          <p className="text-xs text-gray-400 mb-0.5">已收款</p>
+          <p className="text-xs text-gray-400 mb-0.5">{t('revenue.collected')}</p>
           <p className="text-lg font-semibold text-[#38A169]">{fmt(paidAmount)}</p>
         </div>
         <div className="px-5 py-3">
-          <p className="text-xs text-gray-400 mb-0.5">待收款</p>
+          <p className="text-xs text-gray-400 mb-0.5">{t('revenue.uncollected')}</p>
           <p className="text-lg font-semibold text-[#DD6B20]">{fmt(unpaidAmount)}</p>
         </div>
       </div>
@@ -152,7 +161,7 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
       {totalAmount > 0 && (
         <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/40">
           <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-            <span>收款进度</span>
+            <span>{t('revenue.collectionProgress')}</span>
             <span className="font-medium text-[#38A169]">
               {Math.round((paidAmount / totalAmount) * 100)}%
             </span>
@@ -170,8 +179,8 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
       {revenues.length === 0 ? (
         <EmptyState
           icon={<TrendingUpIcon className="w-8 h-8" />}
-          title="暂无收入记录"
-          description="新增收入后将在此显示"
+          title={t('revenue.noRecords')}
+          description={t('revenue.recordsWillAppear')}
         />
       ) : (
         <>
@@ -206,13 +215,13 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
         <table className="hidden md:table w-full text-sm">
           <thead className="border-b border-gray-100" style={{ backgroundColor: '#F7FAFC' }}>
             <tr>
-              <th className="text-left px-4 py-3 font-semibold text-[#4A5568]">描述</th>
-              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-32">发票号</th>
-              <th className="text-right px-4 py-3 font-semibold text-[#4A5568] w-28">金额</th>
-              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">开票日期</th>
-              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">收款日期</th>
-              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">状态</th>
-              {showOpsCol && <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-16">操作</th>}
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568]">{t('common.description')}</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-32">{t('revenue.invoiceNumber')}</th>
+              <th className="text-right px-4 py-3 font-semibold text-[#4A5568] w-28">{t('common.amount')}</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">{t('revenue.issueDate')}</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">{t('revenue.receivedDate')}</th>
+              <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-28">{t('common.status')}</th>
+              {showOpsCol && <th className="text-left px-4 py-3 font-semibold text-[#4A5568] w-16">{t('common.actions')}</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -261,36 +270,36 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>新增收入</DialogTitle>
+            <DialogTitle>{t('revenue.addRevenue').replace('+ ', '')}</DialogTitle>
           </DialogHeader>
           <form action={formAction} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label htmlFor="rev-desc">收入描述 <span className="text-red-500">*</span></Label>
-              <Input id="rev-desc" name="description" placeholder="例：Zeekr 八月月费" required />
+              <Label htmlFor="rev-desc">{t('revenue.revenueDescription')} <span className="text-red-500">*</span></Label>
+              <Input id="rev-desc" name="description" placeholder={locale === 'zh' ? '\u4f8b\uff1aZeekr \u516b\u6708\u6708\u8d39' : 'e.g., Zeekr Aug retainer'} required />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="rev-inv">客户发票号</Label>
+              <Label htmlFor="rev-inv">{t('revenue.customerInvoice')}</Label>
               <Input id="rev-inv" name="invoice_number" placeholder="INV-2026-001" />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="rev-amt">金额 (AUD) <span className="text-red-500">*</span></Label>
+              <Label htmlFor="rev-amt">{t('revenue.amountAUD')} <span className="text-red-500">*</span></Label>
               <Input id="rev-amt" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="rev-date">开票日期 <span className="text-red-500">*</span></Label>
+              <Label htmlFor="rev-date">{t('revenue.issueDate')} <span className="text-red-500">*</span></Label>
               <Input id="rev-date" name="issue_date" type="date" required onChange={e => setIssueDate(e.target.value)} />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="rev-received">收款日期</Label>
+              <Label htmlFor="rev-received">{t('revenue.receivedDate')}</Label>
               <Input id="rev-received" name="received_date" type="date" min={issueDate || undefined} />
             </div>
 
             <div className="space-y-1.5">
-              <Label>收款状态</Label>
+              <Label>{t('revenue.collectionStatus')}</Label>
               <Select value={status} onValueChange={(v) => v && setStatus(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -308,11 +317,11 @@ export default function RevenueSection({ projectId, revenues, canEdit, isSuperAd
             )}
 
             <div className="flex gap-2 justify-end pt-1">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>{t('common.cancel')}</Button>
               <Button type="submit" disabled={pending}>
                 {pending ? (
-                  <><svg className="animate-spin w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"/></svg>保存中</>
-                ) : '保存'}
+                  <><svg className="animate-spin w-3.5 h-3.5 mr-1" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 22 6.477 22 12h-4z"/></svg>{t('common.saving')}</>
+                ) : t('common.save')}
               </Button>
             </div>
           </form>

@@ -1,7 +1,9 @@
 import LoginForm from './login-form'
 import HylinkLogo from '@/components/hylink-logo'
+import { getServerT } from '@/i18n/use-server-t'
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const t = await getServerT()
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center">
       {/* Gradient background */}
@@ -27,7 +29,7 @@ export default function LoginPage() {
         <div className="hidden lg:block flex-1">
           <p className="text-white/50 text-sm tracking-[0.3em] uppercase mb-6">Internal Management System</p>
           <h1 className="text-white font-bold leading-[1.15] tracking-tight" style={{ fontSize: 'clamp(2.5rem, 4vw, 3.5rem)' }}>
-            数字驱动，<br />精准管控。
+            {t('login.subtitle')}
           </h1>
           <p className="mt-5 text-white/40 text-sm tracking-widest">
             Precision financial management<br />for every campaign.
@@ -38,8 +40,8 @@ export default function LoginPage() {
         <div className="w-full max-w-sm flex-shrink-0">
           <div className="backdrop-blur-xl bg-white/[0.07] border border-white/10 rounded-2xl p-8 shadow-2xl">
             <div className="mb-7">
-              <h2 className="text-white text-xl font-semibold tracking-tight">欢迎回来</h2>
-              <p className="mt-1 text-white/40 text-sm">请使用公司账户登录</p>
+              <h2 className="text-white text-xl font-semibold tracking-tight">{t('login.welcomeBack')}</h2>
+              <p className="mt-1 text-white/40 text-sm">{t('login.companyAccount')}</p>
             </div>
             <LoginForm />
           </div>

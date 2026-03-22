@@ -14,11 +14,11 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
   const { error } = await supabase.auth.signInWithPassword({ email, password })
 
   if (error) {
-    return { error: '邮箱或密码错误' }
+    return { error: 'errors.invalidCredentials' }
   }
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '登录失败，请重试' }
+  if (!user) return { error: 'errors.loginFailed' }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -44,7 +44,7 @@ export async function inviteUser(_prev: ActionState, formData: FormData): Promis
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未授权' }
+  if (!user) return { error: 'errors.unauthorized' }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -52,7 +52,7 @@ export async function inviteUser(_prev: ActionState, formData: FormData): Promis
     .eq('id', user.id)
     .single<{ role: 'Staff' | 'Controller' }>()
 
-  if (profile?.role !== 'Controller') return { error: '无权限' }
+  if (profile?.role !== 'Controller') return { error: 'errors.noPermission' }
 
   const email = formData.get('email') as string
   const role = formData.get('role') as string

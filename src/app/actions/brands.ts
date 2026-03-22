@@ -28,14 +28,14 @@ async function assertBrandManager() {
 
 export async function addBrand(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await assertBrandManager()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const name = (formData.get('name') as string).trim()
-  if (!name) return { error: '品牌名称不能为空' }
+  if (!name) return { error: 'errors.brandNameEmpty' }
 
   const { error } = await getAdminClient().from('brands').insert({ name })
   if (error) {
-    if (error.code === '23505') return { error: '该品牌名称已存在' }
+    if (error.code === '23505') return { error: 'errors.brandNameExists' }
     return { error: error.message }
   }
 
@@ -45,15 +45,15 @@ export async function addBrand(_prev: ActionState, formData: FormData): Promise<
 
 export async function updateBrand(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await assertBrandManager()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const id = formData.get('id') as string
   const name = (formData.get('name') as string).trim()
-  if (!name) return { error: '品牌名称不能为空' }
+  if (!name) return { error: 'errors.brandNameEmpty' }
 
   const { error } = await getAdminClient().from('brands').update({ name }).eq('id', id)
   if (error) {
-    if (error.code === '23505') return { error: '该品牌名称已存在' }
+    if (error.code === '23505') return { error: 'errors.brandNameExists' }
     return { error: error.message }
   }
 
@@ -64,7 +64,7 @@ export async function updateBrand(_prev: ActionState, formData: FormData): Promi
 
 export async function toggleBrandStatus(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await assertBrandManager()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const id = formData.get('id') as string
   const currentlyActive = formData.get('is_active') === 'true'
@@ -80,7 +80,7 @@ export async function toggleBrandStatus(_prev: ActionState, formData: FormData):
 
 export async function deleteBrand(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await assertBrandManager()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const id = formData.get('id') as string
   const { error } = await getAdminClient().from('brands').delete().eq('id', id)

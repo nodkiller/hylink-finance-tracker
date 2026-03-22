@@ -1,8 +1,10 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { getServerT } from '@/i18n/use-server-t'
 
 import ProjectsTable, { type ProjectRow } from './projects-table'
 
 export default async function ProjectsPage() {
+  const t = await getServerT()
   const db = createAdmin(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -53,7 +55,7 @@ export default async function ProjectsPage() {
   return (
     <main className="max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">项目列表</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('projects.title')}</h1>
         </div>
         <ProjectsTable projects={rows} brands={brands} />
     </main>

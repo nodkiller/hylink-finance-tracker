@@ -56,7 +56,7 @@ export async function approveProject(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertApprover()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const projectId = formData.get('project_id') as string
   const brandName = formData.get('brand_name') as string
@@ -85,8 +85,8 @@ export async function approveProject(
     await notify([{
       user_id: proj.created_by,
       type: 'project_approved',
-      title: `项目已批准：${proj.name}`,
-      body: `项目代码：${projectCode}`,
+      title: `Project approved: ${proj.name}`,
+      body: `Project code: ${projectCode}`,
       link: `/projects/${projectId}`,
     }])
   }
@@ -102,7 +102,7 @@ export async function rejectProject(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertApprover()
-  if (!user) return { error: '无权限' }
+  if (!user) return { error: 'errors.noPermission' }
 
   const projectId = formData.get('project_id') as string
   const reason = (formData.get('reason') as string)?.trim() || null
@@ -128,7 +128,7 @@ export async function rejectProject(
     await notify([{
       user_id: proj.created_by,
       type: 'project_rejected',
-      title: `项目已拒绝：${proj.name}`,
+      title: `Project rejected: ${proj.name}`,
       body: reason ?? undefined,
       link: `/projects/${projectId}`,
     }])

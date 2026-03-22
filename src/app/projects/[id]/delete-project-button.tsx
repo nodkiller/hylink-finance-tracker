@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { useRouter } from 'next/navigation'
 import { deleteProject } from '@/app/actions/projects'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ interface Props {
 
 export default function DeleteProjectButton({ projectId, projectName, hasRecords }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -45,33 +47,33 @@ export default function DeleteProjectButton({ projectId, projectName, hasRecords
         onClick={() => setOpen(true)}
         className="h-7 text-xs px-3 border-red-200 text-red-600 hover:bg-red-50"
       >
-        删除
+        {t('common.delete')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>删除项目</DialogTitle>
+            <DialogTitle>{t('projects.deleteProjectTitle')}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-3 pt-1">
             <p className="text-sm text-gray-700">
-              确定要删除项目 <span className="font-semibold">「{projectName}」</span> 吗？
+              {t('projects.deleteProjectConfirm').replace('{name}', projectName)}
             </p>
             {hasRecords && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2.5 text-xs text-red-700">
-                ⚠️ 该项目下的所有收入和支出记录也将被一并删除，此操作不可恢复。
+                {'\u26a0\ufe0f'} {t('projects.deleteProjectWarningRecords')}
               </div>
             )}
             {!hasRecords && (
-              <p className="text-xs text-gray-400">此操作不可恢复。</p>
+              <p className="text-xs text-gray-400">{t('projects.cannotUndo')}</p>
             )}
 
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex gap-2 justify-end pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button
                 type="button"
@@ -79,7 +81,7 @@ export default function DeleteProjectButton({ projectId, projectName, hasRecords
                 onClick={handleDelete}
                 disabled={isPending}
               >
-                {isPending ? '删除中...' : '确认删除'}
+                {isPending ? t('common.deleting') : t('common.confirmDelete')}
               </Button>
             </div>
           </div>

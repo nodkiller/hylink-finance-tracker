@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { exportToExcel, exportToPDF, type SheetRow } from './export-utils'
 import Link from 'next/link'
 
@@ -109,6 +110,7 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
   range: string
   brandFilter: string
 }) {
+  const { t } = useTranslation()
   const [groupBy, setGroupBy] = useState<'brand' | 'month'>('brand')
   const rangeStart = getRangeStart(range)
 
@@ -176,24 +178,24 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
   }), { revenue: 0, expenses: 0, profit: 0 })
 
   async function handleExcel() {
-    const headers = [groupBy === 'brand' ? '品牌' : '月份', '收入 (AUD)', '支出 (AUD)', '利润 (AUD)', '毛利率']
+    const headers = [groupBy === 'brand' ? t('reports.byBrand') : t('reports.byMonth'), `${t('reports.totalRevenue')} (AUD)`, `${t('reports.totalExpenses')} (AUD)`, `${t('reports.totalProfit')} (AUD)`, t('reports.grossMargin')]
     const sheetRows: SheetRow[] = rows.map(r => [r.label, r.revenue, r.expenses, r.profit, r.margin !== null ? `${r.margin.toFixed(1)}%` : '—'])
-    sheetRows.push(['合计', totals.revenue, totals.expenses, totals.profit, totals.revenue > 0 ? `${((totals.profit / totals.revenue) * 100).toFixed(1)}%` : '—'])
-    await exportToExcel([{ name: '损益表', headers, rows: sheetRows }], `PL_Report_${new Date().toISOString().slice(0, 10)}`)
+    sheetRows.push([t('reports.total'), totals.revenue, totals.expenses, totals.profit, totals.revenue > 0 ? `${((totals.profit / totals.revenue) * 100).toFixed(1)}%` : '—'])
+    await exportToExcel([{ name: t('reports.plReport'), headers, rows: sheetRows }], `PL_Report_${new Date().toISOString().slice(0, 10)}`)
   }
 
   async function handlePdf() {
-    const headers = [groupBy === 'brand' ? '品牌' : '月份', '收入', '支出', '利润', '毛利率']
+    const headers = [groupBy === 'brand' ? t('reports.byBrand') : t('reports.byMonth'), t('reports.totalRevenue'), t('reports.totalExpenses'), t('reports.totalProfit'), t('reports.grossMargin')]
     const sheetRows: SheetRow[] = rows.map(r => [r.label, fmt(r.revenue), fmt(r.expenses), fmt(r.profit), fmtPct(r.margin)])
-    await exportToPDF('项目损益表 (P&L)', headers, sheetRows, `PL_Report_${new Date().toISOString().slice(0, 10)}`)
+    await exportToPDF('P&L Report', headers, sheetRows, `PL_Report_${new Date().toISOString().slice(0, 10)}`)
   }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-          <button onClick={() => setGroupBy('brand')} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${groupBy === 'brand' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>按品牌</button>
-          <button onClick={() => setGroupBy('month')} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${groupBy === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>按月份</button>
+          <button onClick={() => setGroupBy('brand')} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${groupBy === 'brand' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>{t('reports.byBrand')}</button>
+          <button onClick={() => setGroupBy('month')} className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${groupBy === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>{t('reports.byMonth')}</button>
         </div>
         <ExportBar onExcel={handleExcel} onPdf={handlePdf} />
       </div>
@@ -201,15 +203,15 @@ function PLReport({ revenues, expenses, brands, range, brandFilter }: {
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-[#38A169]/5 border border-[#38A169]/20 rounded-xl px-5 py-4">
-          <p className="text-xs text-[#38A169] font-medium mb-1">总收入（已收款）</p>
+          <p className="text-xs text-[#38A169] font-medium mb-1">{t('reports.totalRevenueReceived')}</p>
           <p className="text-xl font-bold text-[#38A169]">{fmt(totals.revenue)}</p>
         </div>
         <div className="bg-[#E53E3E]/5 border border-[#E53E3E]/20 rounded-xl px-5 py-4">
-          <p className="text-xs text-[#E53E3E] font-medium mb-1">总支出（已批准）</p>
+          <p className="text-xs text-[#E53E3E] font-medium mb-1">{t('reports.totalExpensesApproved')}</p>
           <p className="text-xl font-bold text-[#E53E3E]">{fmt(totals.expenses)}</p>
         </div>
         <div className={`rounded-xl px-5 py-4 border ${totals.profit >= 0 ? 'bg-[#2B6CB0]/5 border-[#2B6CB0]/20' : 'bg-[#E53E3E]/5 border-[#E53E3E]/20'}`}>
-          <p className="text-xs font-medium mb-1" style={{ color: totals.profit >= 0 ? '#2B6CB0' : '#E53E3E' }}>净利润</p>
+          <p className="text-xs font-medium mb-1" style={{ color: totals.profit >= 0 ? '#2B6CB0' : '#E53E3E' }}>{t('reports.netProfit')}</p>
           <p className="text-xl font-bold" style={{ color: totals.profit >= 0 ? '#2B6CB0' : '#E53E3E' }}>
             {fmt(totals.profit)}
             {totals.revenue > 0 && <span className="text-sm font-normal ml-2 opacity-70">{fmtPct(totals.profit / totals.revenue * 100)}</span>}

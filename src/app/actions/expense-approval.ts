@@ -36,7 +36,7 @@ export async function approveExpense(
   formData: FormData
 ): Promise<ActionState> {
   const approver = await assertApprover()
-  if (!approver) return { error: '无权限' }
+  if (!approver) return { error: 'errors.noPermission' }
 
   const expense_id = formData.get('expense_id') as string
 
@@ -46,13 +46,13 @@ export async function approveExpense(
     .eq('id', expense_id)
     .single<{ status: string; project_id: string }>()
 
-  if (!expense) return { error: '记录不存在' }
+  if (!expense) return { error: 'errors.recordNotFound' }
 
   if (expense.status === 'Pending Super Approval' && approver.role !== 'Super Admin') {
-    return { error: '此金额需要超级管理员审批' }
+    return { error: 'errors.needsSuperAdminApproval' }
   }
   if (!['Pending Approval', 'Pending Super Approval'].includes(expense.status)) {
-    return { error: '此支出不处于待审批状态' }
+    return { error: 'errors.expenseNotPending' }
   }
 
   const { error } = await adminClient()
@@ -76,7 +76,7 @@ export async function approveExpense(
     await notify([{
       user_id: fullExpense.created_by,
       type: 'expense_approved',
-      title: `付款请求已批准：${fullExpense.payee}`,
+      title: `Payment approved: ${fullExpense.payee}`,
       body: `A$${Number(fullExpense.amount).toLocaleString()}`,
       link: `/projects/${fullExpense.project_id}`,
     }])
@@ -92,7 +92,7 @@ export async function rejectExpense(
   formData: FormData
 ): Promise<ActionState> {
   const approver = await assertApprover()
-  if (!approver) return { error: '无权限' }
+  if (!approver) return { error: 'errors.noPermission' }
 
   const expense_id = formData.get('expense_id') as string
   const reason = (formData.get('reason') as string)?.trim() || null
@@ -103,13 +103,13 @@ export async function rejectExpense(
     .eq('id', expense_id)
     .single<{ status: string; project_id: string }>()
 
-  if (!expense) return { error: '记录不存在' }
+  if (!expense) return { error: 'errors.recordNotFound' }
 
   if (expense.status === 'Pending Super Approval' && approver.role !== 'Super Admin') {
-    return { error: '此金额需要超级管理员审批' }
+    return { error: 'errors.needsSuperAdminApproval' }
   }
   if (!['Pending Approval', 'Pending Super Approval'].includes(expense.status)) {
-    return { error: '此支出不处于待审批状态' }
+    return { error: 'errors.expenseNotPending' }
   }
 
   const { error } = await adminClient()
@@ -134,7 +134,7 @@ export async function rejectExpense(
     await notify([{
       user_id: fullExpense.created_by,
       type: 'expense_rejected',
-      title: `付款请求已拒绝：${fullExpense.payee}`,
+      title: `Payment rejected: ${fullExpense.payee}`,
       body: reason ?? undefined,
       link: `/projects/${fullExpense.project_id}`,
     }])

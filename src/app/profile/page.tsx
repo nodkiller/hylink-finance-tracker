@@ -1,10 +1,12 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdmin } from '@supabase/supabase-js'
+import { getServerT } from '@/i18n/use-server-t'
 
 import ProfileForm from './profile-form'
 
 export default async function ProfilePage() {
+  const t = await getServerT()
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -24,8 +26,8 @@ export default async function ProfilePage() {
   return (
     <main className="max-w-2xl mx-auto px-6 py-8 space-y-2">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">个人资料</h1>
-          <p className="text-sm text-gray-500 mt-1">管理您的账号信息和登录凭据。</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('profile.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('profile.desc')}</p>
         </div>
         <ProfileForm
           fullName={profile?.full_name ?? null}

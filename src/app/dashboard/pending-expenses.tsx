@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useTranslation } from '@/i18n/context'
 
 export interface PendingExpense {
   id: string
@@ -38,12 +39,13 @@ function ApproveExpenseButton({
   onDone: () => void
 }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [toast, setToast] = useState<string | null>(null)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await approveExpense(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast('已批准')
+      setToast(t('common.approved'))
       setTimeout(() => { setToast(null); onDone(); router.refresh() }, 1800)
     }
     return result
@@ -69,7 +71,7 @@ function ApproveExpenseButton({
           disabled={pending}
           className="bg-[#38A169] hover:bg-[#2d6336] text-white h-7 px-3 text-xs"
         >
-          {pending ? '...' : '批准'}
+          {pending ? '...' : t('expenses.approve')}
         </Button>
       </form>
     </div>
@@ -84,6 +86,7 @@ function RejectExpenseButton({
   onDone: () => void
 }) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
@@ -106,27 +109,25 @@ function RejectExpenseButton({
         onClick={() => setOpen(true)}
         className="border-red-300 text-red-600 hover:bg-red-50 h-7 px-3 text-xs"
       >
-        拒绝
+        {t('expenses.reject')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>拒绝付款请求</DialogTitle>
+            <DialogTitle>{t('expenses.rejectPayment')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-gray-500">
-            收款方：<span className="font-medium text-gray-900">{expense.payee}</span>
-            <span className="mx-1">·</span>
-            <span className="font-medium text-gray-900">{fmt(expense.amount)}</span>
+            {t('expenses.payeeAmount').replace('{payee}', expense.payee).replace('{amount}', fmt(expense.amount))}
           </p>
           <form action={formAction} className="space-y-4 pt-1">
             <input type="hidden" name="expense_id" value={expense.id} />
             <div className="space-y-1.5">
-              <Label htmlFor="exp-reason">拒绝原因（选填）</Label>
+              <Label htmlFor="exp-reason">{t('expenses.rejectionReasonOpt')}</Label>
               <Textarea
                 id="exp-reason"
                 name="reason"
-                placeholder="请说明拒绝原因..."
+                placeholder={t('projects.explainRejection')}
                 rows={3}
                 autoFocus
               />
@@ -136,10 +137,10 @@ function RejectExpenseButton({
             )}
             <div className="flex gap-2 justify-end">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button type="submit" variant="destructive" disabled={pending}>
-                {pending ? '处理中...' : '确认拒绝'}
+                {pending ? t('common.processing') : t('projects.confirmRejection')}
               </Button>
             </div>
           </form>
@@ -155,6 +156,7 @@ interface Props {
 }
 
 export default function PendingExpenses({ expenses: initial, approverRole }: Props) {
+  const { t } = useTranslation()
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
   const visible = initial.filter(e => !dismissed.has(e.id))
   const dismiss = (id: string) => setDismissed(prev => new Set([...prev, id]))
@@ -163,7 +165,7 @@ export default function PendingExpenses({ expenses: initial, approverRole }: Pro
     <div className="flex flex-col gap-0">
       {visible.length === 0 ? (
         <div className="px-4 py-8 text-center text-gray-400 text-sm">
-          暂无待审批付款 ✓
+          {t('dashboard.noPendingPayments')}
         </div>
       ) : (
         <div className="divide-y divide-gray-50">
@@ -178,7 +180,7 @@ export default function PendingExpenses({ expenses: initial, approverRole }: Pro
                     </span>
                     {e.status === 'Pending Super Approval' && (
                       <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200">
-                        超级管理员
+                        {t('expenses.superAdminBadge')}
                       </span>
                     )}
                   </div>
@@ -192,7 +194,7 @@ export default function PendingExpenses({ expenses: initial, approverRole }: Pro
                       rel="noopener noreferrer"
                       className="text-xs text-blue-500 hover:text-blue-700 hover:underline"
                     >
-                      查看附件 ↗
+                      {t('expenses.viewAttachment')}
                     </a>
                   </div>
                 </div>

@@ -5,14 +5,16 @@ import { login } from '@/app/actions/auth'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from '@/i18n/context'
 
 export default function LoginForm() {
+  const { t } = useTranslation()
   const [state, formAction, pending] = useActionState(login, undefined)
 
   return (
     <form action={formAction} className="space-y-4">
       <div className="space-y-1.5">
-        <label htmlFor="email" className="text-white/60 text-xs tracking-widest uppercase">邮箱</label>
+        <label htmlFor="email" className="text-white/60 text-xs tracking-widest uppercase">{t('common.email')}</label>
         <input
           id="email"
           name="email"
@@ -25,7 +27,7 @@ export default function LoginForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label htmlFor="password" className="text-white/60 text-xs tracking-widest uppercase">密码</label>
+        <label htmlFor="password" className="text-white/60 text-xs tracking-widest uppercase">{t('common.password')}</label>
         <input
           id="password"
           name="password"
@@ -45,7 +47,7 @@ export default function LoginForm() {
         disabled={pending}
         className="w-full mt-2 bg-white text-[#1a3a5c] font-semibold text-sm py-2.5 rounded-lg hover:bg-white/90 active:scale-[0.98] transition disabled:opacity-50 tracking-wide"
       >
-        {pending ? '登录中...' : '登 录'}
+        {pending ? t('login.loggingIn') : t('login.loginButton')}
       </button>
     </form>
   )

@@ -3,6 +3,7 @@
 import { useActionState, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useTranslation } from '@/i18n/context'
 import { addBrand, updateBrand, toggleBrandStatus } from '@/app/actions/brands'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,7 @@ function fmt(n: number) {
 }
 
 function AddBrandDialog({ onDone }: { onDone: () => void }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -48,19 +50,19 @@ function AddBrandDialog({ onDone }: { onDone: () => void }) {
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>+ 新增品牌</Button>
+      <Button onClick={() => setOpen(true)}>{t('adminBrands.addBrand')}</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>新增品牌</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('adminBrands.newBrand')}</DialogTitle></DialogHeader>
           <form action={formAction} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label htmlFor="add-brand-name">品牌名称</Label>
-              <Input id="add-brand-name" name="name" placeholder="例：Toyota" required autoFocus />
+              <Label htmlFor="add-brand-name">{t('adminBrands.brandName')}</Label>
+              <Input id="add-brand-name" name="name" placeholder={t('adminBrands.brandPlaceholder')} required autoFocus />
             </div>
-            {state && 'error' in state && <p className="text-sm text-red-600">{state.error}</p>}
+            {state && 'error' in state && <p className="text-sm text-red-600">{t(state.error)}</p>}
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>取消</Button>
-              <Button type="submit" disabled={pending}>{pending ? '添加中...' : '确认添加'}</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={pending}>{pending ? t('common.adding') : t('adminBrands.confirmAdd')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -70,6 +72,7 @@ function AddBrandDialog({ onDone }: { onDone: () => void }) {
 }
 
 function EditNameDialog({ brand }: { brand: BrandStat }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [open, setOpen] = useState(false)
 
@@ -87,15 +90,15 @@ function EditNameDialog({ brand }: { brand: BrandStat }) {
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}
         className="h-7 px-2.5 text-xs border-gray-200 text-gray-600">
-        编辑
+        {t('common.edit')}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>编辑品牌名称</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{t('adminBrands.editBrandName')}</DialogTitle></DialogHeader>
           <form action={formAction} className="space-y-4 pt-2">
             <input type="hidden" name="id" value={brand.id} />
             <div className="space-y-1.5">
-              <Label htmlFor={`edit-name-${brand.id}`}>品牌名称</Label>
+              <Label htmlFor={`edit-name-${brand.id}`}>{t('adminBrands.brandName')}</Label>
               <Input
                 id={`edit-name-${brand.id}`}
                 name="name"
@@ -104,10 +107,10 @@ function EditNameDialog({ brand }: { brand: BrandStat }) {
                 autoFocus
               />
             </div>
-            {state && 'error' in state && <p className="text-sm text-red-600">{state.error}</p>}
+            {state && 'error' in state && <p className="text-sm text-red-600">{t(state.error)}</p>}
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>取消</Button>
-              <Button type="submit" disabled={pending}>{pending ? '保存中...' : '保存'}</Button>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>{t('common.cancel')}</Button>
+              <Button type="submit" disabled={pending}>{pending ? t('common.saving') : t('common.save')}</Button>
             </div>
           </form>
         </DialogContent>
@@ -117,13 +120,14 @@ function EditNameDialog({ brand }: { brand: BrandStat }) {
 }
 
 function ToggleStatusButton({ brand }: { brand: BrandStat }) {
+  const { t } = useTranslation()
   const router = useRouter()
   const [toast, setToast] = useState<string | null>(null)
 
   const action = async (_prev: State, formData: FormData): Promise<State> => {
     const result = await toggleBrandStatus(_prev, formData)
     if (result && 'success' in result && result.success) {
-      setToast(brand.is_active ? '✓ 已停用' : '✓ 已启用')
+      setToast(brand.is_active ? `✓ ${t('adminUsers.suspended2')}` : `✓ ${t('adminUsers.activated')}`)
       setTimeout(() => { setToast(null); router.refresh() }, 1500)
     }
     return result
@@ -141,7 +145,7 @@ function ToggleStatusButton({ brand }: { brand: BrandStat }) {
         <input type="hidden" name="id" value={brand.id} />
         <input type="hidden" name="is_active" value={String(brand.is_active)} />
         {state && 'error' in state && (
-          <p className="text-xs text-red-500 mb-1">{state.error}</p>
+          <p className="text-xs text-red-500 mb-1">{t(state.error)}</p>
         )}
         <Button
           type="submit"
@@ -154,7 +158,7 @@ function ToggleStatusButton({ brand }: { brand: BrandStat }) {
               : 'border-[#38A169]/40 text-[#38A169] hover:bg-[#38A169]/5'
           }`}
         >
-          {pending ? '...' : brand.is_active ? '停用' : '启用'}
+          {pending ? '...' : brand.is_active ? t('adminBrands.deactivate') : t('adminBrands.activate')}
         </Button>
       </form>
     </div>
@@ -166,6 +170,7 @@ interface Props {
 }
 
 export default function BrandsClient({ brands }: Props) {
+  const { t } = useTranslation()
   const activeCount = brands.filter(b => b.is_active).length
   const totalRevenue = brands.reduce((s, b) => s + b.revenue, 0)
   const totalExpenses = brands.reduce((s, b) => s + b.expenses, 0)
@@ -175,10 +180,10 @@ export default function BrandsClient({ brands }: Props) {
     <>
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">品牌管理</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('adminBrands.title')}</h1>
           <p className="text-sm text-gray-400 mt-1">
-            共 {brands.length} 个品牌 · {activeCount} 启用
-            {brands.length - activeCount > 0 && ` · ${brands.length - activeCount} 停用`}
+            {t('adminBrands.brandCount').replace('{count}', String(brands.length)).replace('{active}', String(activeCount))}
+            {brands.length - activeCount > 0 && ` · ${t('adminBrands.brandCountSuspended').replace('{count}', String(brands.length - activeCount))}`}
           </p>
         </div>
         <AddBrandDialog onDone={() => {}} />
@@ -188,13 +193,13 @@ export default function BrandsClient({ brands }: Props) {
         <table className="w-full text-sm">
           <thead className="bg-gray-50 border-b border-gray-100">
             <tr>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">品牌名称</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">状态</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">项目数</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">总收入</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">总支出</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">总利润</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">操作</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('adminBrands.brandName')}</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 text-xs">{t('common.status')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('adminBrands.projects')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalRevenue')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalExpenses')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('reports.totalProfit')}</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 text-xs">{t('common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -214,11 +219,11 @@ export default function BrandsClient({ brands }: Props) {
                 <td className="px-4 py-3">
                   {b.is_active ? (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-[#38A169]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#38A169]" />启用
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#38A169]" />{t('adminUsers.active')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-xs font-medium text-[#E53E3E]">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#E53E3E]" />停用
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#E53E3E]" />{t('adminUsers.suspendedLabel')}
                     </span>
                   )}
                 </td>
@@ -244,14 +249,14 @@ export default function BrandsClient({ brands }: Props) {
             ))}
             {brands.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">暂无品牌</td>
+                <td colSpan={7} className="px-4 py-10 text-center text-gray-400 text-sm">{t('adminBrands.noBrands')}</td>
               </tr>
             )}
           </tbody>
           {brands.length > 0 && (
             <tfoot className="border-t-2 border-gray-200 bg-gray-50">
               <tr>
-                <td colSpan={3} className="px-4 py-2.5 text-xs font-bold text-gray-600">合计</td>
+                <td colSpan={3} className="px-4 py-2.5 text-xs font-bold text-gray-600">{t('reports.total')}</td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-[#38A169]">{fmt(totalRevenue)}</td>
                 <td className="px-4 py-2.5 text-right font-mono text-xs font-bold text-[#E53E3E]">{fmt(totalExpenses)}</td>
                 <td className={`px-4 py-2.5 text-right font-mono text-xs font-bold ${totalProfit >= 0 ? 'text-[#2B6CB0]' : 'text-[#E53E3E]'}`}>{fmt(totalProfit)}</td>

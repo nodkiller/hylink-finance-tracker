@@ -33,23 +33,23 @@ export async function saveApprovalThresholds(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertSuperAdmin()
-  if (!user) return { error: '无权限（仅 Super Admin）' }
+  if (!user) return { error: 'errors.superAdminOnly' }
 
   const auto_limit       = parseFloat(formData.get('auto_limit') as string)
   const admin_limit      = parseFloat(formData.get('admin_limit') as string)
   const super_admin_limit = parseFloat(formData.get('super_admin_limit') as string)
 
   if (isNaN(auto_limit) || isNaN(admin_limit) || isNaN(super_admin_limit)) {
-    return { error: '请填写有效金额' }
+    return { error: 'errors.invalidAmount' }
   }
   if (auto_limit <= 0 || admin_limit <= 0 || super_admin_limit <= 0) {
-    return { error: '金额必须大于 0' }
+    return { error: 'errors.amountMustPositive' }
   }
   if (auto_limit >= admin_limit) {
-    return { error: '自动审批额度必须小于管理员审批额度' }
+    return { error: 'errors.autoLimitLessThanAdmin' }
   }
   if (admin_limit >= super_admin_limit) {
-    return { error: '管理员审批额度必须小于超级管理员审批额度' }
+    return { error: 'errors.adminLimitLessThanSuper' }
   }
 
   const { error } = await adminClient()
@@ -70,11 +70,11 @@ export async function saveOverdueSettings(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertSuperAdmin()
-  if (!user) return { error: '无权限（仅 Super Admin）' }
+  if (!user) return { error: 'errors.superAdminOnly' }
 
   const overdue_days = parseInt(formData.get('overdue_days') as string)
   if (isNaN(overdue_days) || overdue_days < 1 || overdue_days > 365) {
-    return { error: '逾期天数必须在 1–365 之间' }
+    return { error: 'errors.overdueDaysInvalid' }
   }
 
   const { error } = await adminClient()
@@ -93,7 +93,7 @@ export async function saveDefaultApprover(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertSuperAdmin()
-  if (!user) return { error: '无权限（仅 Super Admin）' }
+  if (!user) return { error: 'errors.superAdminOnly' }
 
   const default_approver_id = (formData.get('default_approver_id') as string) || null
 
@@ -112,7 +112,7 @@ export async function saveDelegateSettings(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertSuperAdmin()
-  if (!user) return { error: '无权限（仅 Super Admin）' }
+  if (!user) return { error: 'errors.superAdminOnly' }
 
   const delegate_approver_id = (formData.get('delegate_approver_id') as string) || null
   const delegate_active = formData.get('delegate_active') === 'true'
@@ -133,7 +133,7 @@ export async function saveBrandApprover(
   formData: FormData
 ): Promise<ActionState> {
   const user = await assertSuperAdmin()
-  if (!user) return { error: '无权限（仅 Super Admin）' }
+  if (!user) return { error: 'errors.superAdminOnly' }
 
   const brand_id   = formData.get('brand_id') as string
   const approver_id = (formData.get('approver_id') as string) || null

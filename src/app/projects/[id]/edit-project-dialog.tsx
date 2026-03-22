@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState, useState } from 'react'
+import { useTranslation } from '@/i18n/context'
 import { useRouter } from 'next/navigation'
 import { updateProject } from '@/app/actions/projects'
 import { Button } from '@/components/ui/button'
@@ -43,6 +44,7 @@ type State = { error: string } | { success: boolean } | undefined
 
 export default function EditProjectDialog({ project, brands }: Props) {
   const router = useRouter()
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [brandId, setBrandId] = useState(project.brand_id)
   const [type, setType] = useState(project.type)
@@ -69,34 +71,34 @@ export default function EditProjectDialog({ project, brands }: Props) {
         onClick={() => setOpen(true)}
         className="h-7 text-xs px-3"
       >
-        编辑
+        {t('common.edit')}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>编辑项目信息</DialogTitle>
+            <DialogTitle>{t('projects.editProjectInfo')}</DialogTitle>
           </DialogHeader>
 
           <form action={formAction} className="space-y-4 pt-2">
             {/* Project code */}
             <div className="space-y-1.5">
               <Label htmlFor="edit-code">
-                项目代码
-                <span className="ml-2 text-xs font-normal text-gray-400">可手动填写或留空</span>
+                {t('projects.projectCodeLabel')}
+                <span className="ml-2 text-xs font-normal text-gray-400">{t('projects.projectCodeManual')}</span>
               </Label>
               <Input
                 id="edit-code"
                 name="project_code"
                 defaultValue={project.project_code ?? ''}
-                placeholder="例：Chery-2026-03"
+                placeholder={t('projects.projectCodePlaceholder')}
                 className="font-mono"
               />
             </div>
 
             {/* Brand */}
             <div className="space-y-1.5">
-              <Label>品牌 <span className="text-red-500">*</span></Label>
+              <Label>{t('projects.brand')} <span className="text-red-500">*</span></Label>
               <Select value={brandId} onValueChange={(v) => v && setBrandId(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -111,7 +113,7 @@ export default function EditProjectDialog({ project, brands }: Props) {
 
             {/* Name */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-name">项目名称 <span className="text-red-500">*</span></Label>
+              <Label htmlFor="edit-name">{t('projects.projectName')} <span className="text-red-500">*</span></Label>
               <Input
                 id="edit-name"
                 name="name"
@@ -122,7 +124,7 @@ export default function EditProjectDialog({ project, brands }: Props) {
 
             {/* Type */}
             <div className="space-y-1.5">
-              <Label>项目类型 <span className="text-red-500">*</span></Label>
+              <Label>{t('projects.projectType')} <span className="text-red-500">*</span></Label>
               <Select value={type} onValueChange={(v) => v && setType(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -137,7 +139,7 @@ export default function EditProjectDialog({ project, brands }: Props) {
 
             {/* Estimated revenue */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-rev">预估收入 (AUD) <span className="text-red-500">*</span></Label>
+              <Label htmlFor="edit-rev">{t('projects.estimatedRevenue')} (AUD) <span className="text-red-500">*</span></Label>
               <Input
                 id="edit-rev"
                 name="estimated_revenue"
@@ -151,7 +153,7 @@ export default function EditProjectDialog({ project, brands }: Props) {
 
             {/* Notes */}
             <div className="space-y-1.5">
-              <Label htmlFor="edit-notes">备注</Label>
+              <Label htmlFor="edit-notes">{t('projects.notes')}</Label>
               <Textarea
                 id="edit-notes"
                 name="notes"
@@ -166,10 +168,10 @@ export default function EditProjectDialog({ project, brands }: Props) {
 
             <div className="flex gap-2 justify-end pt-1">
               <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={pending}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={pending || !brandId || !type}>
-                {pending ? '保存中...' : '保存修改'}
+                {pending ? t('common.saving') : t('common.saveChanges')}
               </Button>
             </div>
           </form>

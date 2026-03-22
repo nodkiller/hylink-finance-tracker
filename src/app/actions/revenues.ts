@@ -20,11 +20,11 @@ export async function addRevenue(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await adminClient()
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const project_id = formData.get('project_id') as string
   const description = (formData.get('description') as string).trim()
@@ -35,10 +35,10 @@ export async function addRevenue(
   const received_date = (formData.get('received_date') as string) || null
 
   if (!description || !issue_date || isNaN(amount) || amount <= 0) {
-    return { error: '请填写所有必填字段' }
+    return { error: 'errors.fillRequired' }
   }
   if (status === 'Paid' && !received_date) {
-    return { error: '状态为已收款时，请填写收款日期' }
+    return { error: 'errors.paidNeedsDate' }
   }
 
   const { error } = await adminClient().from('revenues').insert({
@@ -63,11 +63,11 @@ export async function updateRevenue(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await adminClient()
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const revenue_id = formData.get('revenue_id') as string
   const description = (formData.get('description') as string).trim()
@@ -78,17 +78,17 @@ export async function updateRevenue(
   const received_date = (formData.get('received_date') as string) || null
 
   if (!description || !issue_date || isNaN(amount) || amount <= 0) {
-    return { error: '请填写所有必填字段' }
+    return { error: 'errors.fillRequired' }
   }
   if (status === 'Paid' && !received_date) {
-    return { error: '状态为已收款时，请填写收款日期' }
+    return { error: 'errors.paidNeedsDate' }
   }
 
   const db = adminClient()
   const { data: existing } = await db
     .from('revenues').select('project_id').eq('id', revenue_id)
     .single<{ project_id: string }>()
-  if (!existing) return { error: '收入记录不存在' }
+  if (!existing) return { error: 'errors.revenueNotFound' }
 
   const { error } = await db.from('revenues').update({
     description, invoice_number, amount, issue_date, status, received_date,
@@ -107,7 +107,7 @@ export async function markRevenuePaid(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const revenue_id = formData.get('revenue_id') as string
   const db = adminClient()
@@ -115,8 +115,8 @@ export async function markRevenuePaid(
   const { data: existing } = await db
     .from('revenues').select('project_id, status').eq('id', revenue_id)
     .single<{ project_id: string; status: string }>()
-  if (!existing) return { error: '收入记录不存在' }
-  if (existing.status === 'Paid') return { error: '已收款' }
+  if (!existing) return { error: 'errors.revenueNotFound' }
+  if (existing.status === 'Paid') return { error: 'errors.alreadyPaid' }
 
   const today = new Date().toISOString().slice(0, 10)
   const { error } = await db.from('revenues').update({
@@ -137,11 +137,11 @@ export async function deleteRevenue(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await adminClient()
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const revenue_id = formData.get('revenue_id') as string
   const db = adminClient()
@@ -149,7 +149,7 @@ export async function deleteRevenue(
   const { data: existing } = await db
     .from('revenues').select('project_id').eq('id', revenue_id)
     .single<{ project_id: string }>()
-  if (!existing) return { error: '收入记录不存在' }
+  if (!existing) return { error: 'errors.revenueNotFound' }
 
   const { error } = await db.from('revenues').delete().eq('id', revenue_id)
   if (error) return { error: error.message }

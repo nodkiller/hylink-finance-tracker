@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
+import { getServerT, getServerLocale } from '@/i18n/use-server-t'
 
 import RevenueSection from './revenue-section'
 import ExpenseSection from './expense-section'
@@ -92,6 +93,8 @@ function fmt(n: number | null) {
 
 export default async function ProjectDetailPage({ params }: Props) {
   const { id } = await params
+  const t = await getServerT()
+  const locale = await getServerLocale()
 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -176,8 +179,8 @@ export default async function ProjectDetailPage({ params }: Props) {
       id: 'created',
       date: p.created_at,
       type: 'created',
-      title: '项目创建',
-      subtitle: `由 ${creatorName} 提交申请`,
+      title: t('timeline.projectCreated'),
+      subtitle: t('projects.submittedBySubtitle').replace('{name}', creatorName),
       color: 'blue',
     },
     // Project approvals
@@ -185,8 +188,8 @@ export default async function ProjectDetailPage({ params }: Props) {
       id: `approval-${a.id}`,
       date: a.created_at,
       type: a.action,
-      title: a.action === 'approved' ? '项目已审批通过' : '项目已驳回',
-      subtitle: a.comment ?? `审批人：${approverMap.get(a.approved_by ?? '') ?? '—'}`,
+      title: a.action === 'approved' ? t('timeline.projectApproved') : t('timeline.projectRejected'),
+      subtitle: a.comment ?? t('projects.approverName').replace('{name}', approverMap.get(a.approved_by ?? '') ?? '—'),
       color: (a.action === 'approved' ? 'green' : 'red') as TimelineEvent['color'],
     })),
     // Revenues added
@@ -194,7 +197,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       id: `revenue-${r.id}`,
       date: r.created_at,
       type: 'revenue',
-      title: `收入录入：${r.description ?? '未命名'}`,
+      title: t('timeline.revenueAddedTitle').replace('{desc}', r.description ?? t('projects.unnamed')),
       subtitle: `A$${Number(r.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
       color: 'green' as const,
     })),
@@ -203,7 +206,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       id: `expense-${e.id}`,
       date: e.created_at,
       type: 'expense_submitted',
-      title: `付款申请：${e.payee}`,
+      title: t('timeline.expenseSubmittedTitle').replace('{payee}', e.payee),
       subtitle: `A$${Number(e.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
       color: 'amber' as const,
     })),
@@ -214,7 +217,7 @@ export default async function ProjectDetailPage({ params }: Props) {
         id: `paid-${e.id}`,
         date: e.payment_date!,
         type: 'expense_paid',
-        title: `付款完成：${e.payee}`,
+        title: t('timeline.paymentCompletedTitle').replace('{payee}', e.payee),
         subtitle: `A$${Number(e.amount).toLocaleString('en-AU', { minimumFractionDigits: 2 })}`,
         color: 'green' as const,
       })),
@@ -224,7 +227,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     <main className="max-w-5xl mx-auto px-4 md:px-6 py-5 md:py-8 space-y-4 md:space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-sm text-gray-400">
-          <a href="/projects" className="hover:text-gray-600 transition-colors">项目列表</a>
+          <a href="/projects" className="hover:text-gray-600 transition-colors">{t('projects.title')}</a>
           <span>/</span>
           <a href={`/projects?brand=${p.brand_id}`} className="hover:text-gray-600 transition-colors">{brandName}</a>
           <span>/</span>
@@ -236,13 +239,13 @@ export default async function ProjectDetailPage({ params }: Props) {
           {/* Header row: project code + action buttons */}
           <div className="flex items-start justify-between mb-4">
             <div>
-              <p className="text-xs text-gray-400 mb-1">项目代码</p>
+              <p className="text-xs text-gray-400 mb-1">{t('projects.projectCodeLabel')}</p>
               {p.project_code ? (
                 <p className="text-2xl font-bold font-mono text-gray-900 tracking-wide">
                   {p.project_code}
                 </p>
               ) : (
-                <p className="text-lg font-mono text-gray-300 italic">待审批分配</p>
+                <p className="text-lg font-mono text-gray-300 italic">{t('projects.pendingAssignment')}</p>
               )}
             </div>
 
@@ -282,21 +285,21 @@ export default async function ProjectDetailPage({ params }: Props) {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 pt-4 border-t border-gray-50">
-            <InfoRow label="品牌" value={brandName} />
-            <InfoRow label="项目名称" value={p.name} />
-            <InfoRow label="项目类型" value={p.type} />
+            <InfoRow label={t('projects.brand')} value={brandName} />
+            <InfoRow label={t('projects.projectName')} value={p.name} />
+            <InfoRow label={t('projects.projectType')} value={p.type} />
             <InfoRow
-              label="状态"
+              label={t('common.status')}
               value={
                 <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[p.status] ?? ''}`}>
                   {p.status}
                 </span>
               }
             />
-            <InfoRow label="预估收入" value={fmt(p.estimated_revenue)} />
-            <InfoRow label="申请人" value={creatorName} />
+            <InfoRow label={t('projects.estimatedRevenue')} value={fmt(p.estimated_revenue)} />
+            <InfoRow label={t('projects.applicant')} value={creatorName} />
             <InfoRow
-              label="实际利润"
+              label={t('projects.actualProfit')}
               value={
                 <span className={profit >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}>
                   {fmt(profit)}
@@ -304,7 +307,7 @@ export default async function ProjectDetailPage({ params }: Props) {
               }
             />
             <InfoRow
-              label="利润率"
+              label={t('projects.profitRate')}
               value={
                 profitMargin !== null
                   ? <span className={profitMargin >= 0 ? 'text-[#38A169]' : 'text-[#E53E3E]'}>
@@ -313,10 +316,10 @@ export default async function ProjectDetailPage({ params }: Props) {
                   : <span className="text-gray-400">—</span>
               }
             />
-            {p.notes && <InfoRow label="备注" value={<span className="font-normal text-gray-600">{p.notes}</span>} />}
+            {p.notes && <InfoRow label={t('projects.notes')} value={<span className="font-normal text-gray-600">{p.notes}</span>} />}
             {p.rejection_reason && (
               <div className="col-span-2">
-                <p className="text-xs text-red-400 mb-0.5">拒绝原因</p>
+                <p className="text-xs text-red-400 mb-0.5">{t('projects.rejectionReason')}</p>
                 <p className="text-sm text-red-600">{p.rejection_reason}</p>
               </div>
             )}

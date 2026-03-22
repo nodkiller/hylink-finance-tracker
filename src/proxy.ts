@@ -48,6 +48,11 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Cron routes use CRON_SECRET header auth, not session auth
+  if (pathname.startsWith('/api/cron/')) {
+    return supabaseResponse
+  }
+
   // Not logged in → /login
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
@@ -57,6 +62,7 @@ export async function proxy(request: NextRequest) {
   const needsRoleCheck =
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/reports') ||
+    pathname.startsWith('/payments') ||
     pathname.startsWith('/admin')
 
   if (needsRoleCheck) {
@@ -81,6 +87,9 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL('/projects', request.url))
       }
       if (pathname.startsWith('/reports') && !DASHBOARD_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL('/projects', request.url))
+      }
+      if (pathname.startsWith('/payments') && !ADMIN_ROLES.includes(role)) {
         return NextResponse.redirect(new URL('/projects', request.url))
       }
       if (pathname.startsWith('/dashboard') && !DASHBOARD_ROLES.includes(role)) {

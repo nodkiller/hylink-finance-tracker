@@ -1,12 +1,14 @@
 import { createClient as createAdmin } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getServerT } from '@/i18n/use-server-t'
 
 import ReportsClient, { type RawRevenue, type RawExpense, type RawProject, type RawBrand } from './reports-client'
 
 const DASHBOARD_ROLES = ['Controller', 'Admin', 'Super Admin']
 
 export default async function ReportsPage() {
+  const t = await getServerT()
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
   if (!user) redirect('/login')
@@ -73,8 +75,8 @@ export default async function ReportsPage() {
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5">
         <div className="flex items-baseline justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">报表中心</h1>
-          <p className="text-sm text-gray-400">数据截止：{new Date().toLocaleDateString('zh-CN')}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('reports.title')}</h1>
+          <p className="text-sm text-gray-400">{t('reports.dataAsOf').replace('{date}', new Date().toLocaleDateString())}</p>
         </div>
         <ReportsClient
           revenues={revenues}

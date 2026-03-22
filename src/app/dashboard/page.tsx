@@ -9,9 +9,11 @@ import BrandBarChart, { type BrandBarData } from './brand-bar-chart'
 import ExportButton from './export-button'
 import AnimatedNumber from '@/components/animated-number'
 import Link from 'next/link'
+import { getServerT, getServerLocale } from '@/i18n/use-server-t'
 
-function todayLabel() {
-  return new Date().toLocaleDateString('zh-CN', {
+function todayLabel(locale: string) {
+  const loc = locale === 'zh' ? 'zh-CN' : 'en-AU'
+  return new Date().toLocaleDateString(loc, {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
@@ -59,15 +61,19 @@ function MoMBadge({ pct }: { pct: number | null }) {
   )
 }
 
-const RANGE_LABELS: Record<string, string> = {
-  month: '本月',
-  quarter: '本季度',
-  year: '本年',
+function getRangeLabels(t: (k: string) => string): Record<string, string> {
+  return {
+    month: t('dashboard.month'),
+    quarter: t('dashboard.quarter'),
+    year: t('dashboard.year'),
+  }
 }
 
-const ACTION_LABELS: Record<string, string> = {
-  approved: '批准',
-  rejected: '拒绝',
+function getActionLabels(t: (k: string) => string): Record<string, string> {
+  return {
+    approved: t('common.approved'),
+    rejected: t('common.rejected'),
+  }
 }
 
 export default async function DashboardPage({
@@ -76,6 +82,11 @@ export default async function DashboardPage({
   searchParams: Promise<{ range?: string }>
 }) {
   const { range = 'year' } = await searchParams
+
+  const t = await getServerT()
+  const locale = await getServerLocale()
+  const RANGE_LABELS = getRangeLabels(t)
+  const ACTION_LABELS = getActionLabels(t)
 
   const authClient = await createClient()
   const { data: { user } } = await authClient.auth.getUser()
@@ -282,8 +293,8 @@ export default async function DashboardPage({
       {/* Page header */}
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-gray-900">仪表盘</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{todayLabel()}</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">{t('dashboard.title')}</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{todayLabel(locale)}</p>
         </div>
         <ExportButton />
       </div>
@@ -293,35 +304,35 @@ export default async function DashboardPage({
         {/* 本月收入 */}
         <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
           <div className="absolute left-0 inset-y-0 w-1 bg-[var(--color-success)] rounded-l-xl" />
-          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月实际收入</p>
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">{t('dashboard.thisMonthRevenue')}</p>
           <AnimatedNumber value={thisMonthRevenue} format="currency-aud" className="text-2xl font-bold text-[#16a34a]" />
           <div className="flex items-center gap-1.5 mt-1.5">
             <MoMBadge pct={revenueMoM} />
-            <span className="text-xs text-gray-300">vs 上月</span>
+            <span className="text-xs text-gray-300">{t('common.vsLastMonth')}</span>
           </div>
         </div>
 
         {/* 本月支出 */}
         <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
           <div className="absolute left-0 inset-y-0 w-1 bg-[var(--color-danger)] rounded-l-xl" />
-          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月实际支出</p>
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">{t('dashboard.thisMonthExpenses')}</p>
           <AnimatedNumber value={thisMonthExpenses} format="currency-aud" className="text-2xl font-bold text-[#dc2626]" />
           <div className="flex items-center gap-1.5 mt-1.5">
             <MoMBadge pct={expensesMoM} />
-            <span className="text-xs text-gray-300">vs 上月</span>
+            <span className="text-xs text-gray-300">{t('common.vsLastMonth')}</span>
           </div>
         </div>
 
         {/* 本月利润 */}
         <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
           <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${thisMonthProfit >= 0 ? 'bg-[var(--color-info)]' : 'bg-[var(--color-danger)]'}`} />
-          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">本月利润</p>
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">{t('dashboard.thisMonthProfit')}</p>
           <AnimatedNumber value={thisMonthProfit} format="currency-aud"
             className={`text-2xl font-bold ${thisMonthProfit >= 0 ? 'text-[#2563eb]' : 'text-[#dc2626]'}`} />
           <div className="flex items-center gap-1.5 mt-1.5">
             <MoMBadge pct={profitMoM} />
             {thisMonthMargin !== null && (
-              <span className="text-xs text-gray-400">毛利率 {thisMonthMargin.toFixed(1)}%</span>
+              <span className="text-xs text-gray-400">{t('dashboard.profitMargin')} {thisMonthMargin.toFixed(1)}%</span>
             )}
           </div>
         </div>
@@ -329,11 +340,11 @@ export default async function DashboardPage({
         {/* 待处理 */}
         <div className="relative bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4 overflow-hidden hover:shadow-md transition-shadow">
           <div className={`absolute left-0 inset-y-0 w-1 rounded-l-xl ${totalPending > 0 ? 'bg-[var(--color-warning)]' : 'bg-gray-200'}`} />
-          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">待处理</p>
+          <p className="text-xs text-gray-400 mb-1.5 uppercase tracking-wide">{t('dashboard.pendingItems')}</p>
           <AnimatedNumber value={totalPending}
             className={`text-2xl font-bold ${totalPending > 0 ? 'text-[#f59e0b]' : 'text-gray-400'}`} />
           <p className="text-xs text-gray-400 mt-1.5">
-            {pendingProjects.length} 待审批 · {pendingExpenses.length} 待付款
+            {pendingProjects.length} {t('dashboard.pendingApproval')} · {pendingExpenses.length} {t('dashboard.pendingPayment')}
           </p>
         </div>
       </div>
@@ -344,8 +355,8 @@ export default async function DashboardPage({
         <div className="lg:col-span-3 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-gray-900">月度收支趋势</h2>
-              <p className="text-xs text-gray-400 mt-0.5">近6个月 · 收入 / 支出 / 利润</p>
+              <h2 className="font-semibold text-gray-900">{t('dashboard.monthlyTrend')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('dashboard.monthlyTrendDesc')}</p>
             </div>
           </div>
           <div className="px-4 py-4">
@@ -357,8 +368,8 @@ export default async function DashboardPage({
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-gray-900">品牌收入占比</h2>
-              <p className="text-xs text-gray-400 mt-0.5">已收款 · {RANGE_LABELS[range]}</p>
+              <h2 className="font-semibold text-gray-900">{t('dashboard.brandRevenueShare')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('dashboard.receivedRange').replace('{range}', RANGE_LABELS[range])}</p>
             </div>
             <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-lg p-0.5">
               {(['month', 'quarter', 'year'] as const).map((r) => (
@@ -383,12 +394,12 @@ export default async function DashboardPage({
         {/* Col 1: 按品牌本月收入 */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">按品牌收入</h2>
-            <p className="text-xs text-gray-400 mt-0.5">本月已收款</p>
+            <h2 className="font-semibold text-gray-900">{t('dashboard.revenueByBrand')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('dashboard.receivedThisMonth')}</p>
           </div>
           <div className="px-5 py-4 space-y-3">
             {brandThisMonthList.length === 0 ? (
-              <p className="text-sm text-gray-400 py-4 text-center">本月暂无收入记录</p>
+              <p className="text-sm text-gray-400 py-4 text-center">{t('dashboard.noRevenueThisMonth')}</p>
             ) : (
               brandThisMonthList.map((b) => (
                 <div key={b.name}>
@@ -416,18 +427,18 @@ export default async function DashboardPage({
         {/* Col 2: 最近项目动态 */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">最近项目动态</h2>
-            <p className="text-xs text-gray-400 mt-0.5">审批记录</p>
+            <h2 className="font-semibold text-gray-900">{t('dashboard.recentActivity')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('dashboard.approvalRecords')}</p>
           </div>
           {activity.length === 0 ? (
-            <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无操作记录</div>
+            <div className="px-4 py-8 text-center text-gray-400 text-sm">{t('dashboard.noActivity')}</div>
           ) : (
             <div className="divide-y divide-gray-50 max-h-[320px] overflow-y-auto">
               {activity.slice(0, 8).map((a: any) => {
                 const isApproved = a.action === 'approved'
                 const proj = a.projects
-                const approver = a.profiles?.full_name ?? '未知'
-                const timeStr = new Date(a.created_at).toLocaleString('zh-CN', {
+                const approver = a.profiles?.full_name ?? t('projects.unknown')
+                const timeStr = new Date(a.created_at).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-AU', {
                   month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
                 })
                 return (
@@ -457,8 +468,8 @@ export default async function DashboardPage({
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-gray-900">待处理事项</h2>
-              <p className="text-xs text-gray-400 mt-0.5">审批 + 逾期</p>
+              <h2 className="font-semibold text-gray-900">{t('dashboard.pendingTasks')}</h2>
+              <p className="text-xs text-gray-400 mt-0.5">{t('dashboard.approvalOverdue')}</p>
             </div>
             {totalPending > 0 && (
               <span className="text-xs font-semibold text-[#f59e0b] bg-[#f59e0b]/10 px-2 py-0.5 rounded-full border border-[#f59e0b]/25">
@@ -472,7 +483,7 @@ export default async function DashboardPage({
               <div>
                 <div className="px-4 py-2 bg-gray-50/60">
                   <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                    待审批项目 ({pendingProjects.length})
+                    {t('dashboard.pendingProjects')} ({pendingProjects.length})
                   </span>
                 </div>
                 <ActionItems projects={pendingProjects} />
@@ -483,7 +494,7 @@ export default async function DashboardPage({
               <div>
                 <div className="px-4 py-2 bg-gray-50/60">
                   <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-                    待审批付款 ({pendingExpenses.length})
+                    {t('dashboard.pendingPayments')} ({pendingExpenses.length})
                   </span>
                 </div>
                 <PendingExpenses expenses={pendingExpenses} approverRole={role} />
@@ -494,7 +505,7 @@ export default async function DashboardPage({
               <div>
                 <div className="px-4 py-2 bg-gray-50/60">
                   <span className="text-[10px] font-semibold text-[#dc2626] uppercase tracking-wider">
-                    逾期未收款 ({overdueRevenues.length})
+                    {t('dashboard.overdueUnpaid')} ({overdueRevenues.length})
                   </span>
                 </div>
                 {overdueRevenues.slice(0, 4).map((r: any) => {
@@ -507,7 +518,7 @@ export default async function DashboardPage({
                           <div className="flex items-center gap-1.5 mt-0.5">
                             <span className="text-xs text-gray-400">{proj?.project_code ?? '—'}</span>
                             <span className="text-[11px] font-medium text-[#dc2626] bg-[#dc2626]/10 px-1.5 py-0.5 rounded">
-                              逾期 {r.daysPast}天
+                              {t('dashboard.overdueDays').replace('{days}', String(r.daysPast))}
                             </span>
                           </div>
                         </div>
@@ -518,13 +529,13 @@ export default async function DashboardPage({
                 })}
                 {overdueRevenues.length > 4 && (
                   <div className="px-4 py-2 text-center">
-                    <span className="text-xs text-gray-400">还有 {overdueRevenues.length - 4} 条…</span>
+                    <span className="text-xs text-gray-400">{t('dashboard.moreItems').replace('{count}', String(overdueRevenues.length - 4))}</span>
                   </div>
                 )}
               </div>
             )}
             {totalPending === 0 && overdueRevenues.length === 0 && (
-              <div className="px-4 py-8 text-center text-gray-400 text-sm">暂无待处理事项 ✓</div>
+              <div className="px-4 py-8 text-center text-gray-400 text-sm">{t('dashboard.noPendingTasks')}</div>
             )}
           </div>
         </div>

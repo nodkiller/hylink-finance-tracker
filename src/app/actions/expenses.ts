@@ -21,7 +21,7 @@ export async function createExpense(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const project_id  = formData.get('project_id') as string
   const payee       = (formData.get('payee') as string).trim()
@@ -33,10 +33,10 @@ export async function createExpense(
 
   // Validate required fields
   if (!payee || !invoice_number || !description || isNaN(amount) || amount <= 0) {
-    return { error: '请填写所有必填字段' }
+    return { error: 'errors.fillRequired' }
   }
   if (!file || file.size === 0) {
-    return { error: '请上传发票附件' }
+    return { error: 'errors.uploadAttachment' }
   }
 
   const db = adminClient()
@@ -63,7 +63,7 @@ export async function createExpense(
       upsert: false,
     })
 
-  if (uploadError) return { error: `文件上传失败：${uploadError.message}` }
+  if (uploadError) return { error: 'errors.uploadFailed' }
 
   const { data: { publicUrl } } = db.storage
     .from('invoices')
@@ -106,7 +106,7 @@ export async function createExpense(
       user.id,
       {
         type: 'expense_submitted',
-        title: `付款请求待审批：${payee}`,
+        title: `Payment pending approval: ${payee}`,
         body: `A$${amount.toLocaleString()} · ${description}`,
         link: `/projects/${project_id}`,
       }
@@ -117,7 +117,7 @@ export async function createExpense(
       user.id,
       {
         type: 'expense_submitted',
-        title: `大额付款待审批：${payee}`,
+        title: `Large payment pending approval: ${payee}`,
         body: `A$${amount.toLocaleString()} · ${description}`,
         link: `/projects/${project_id}`,
       }
@@ -135,11 +135,11 @@ export async function updateExpense(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const expense_id     = formData.get('expense_id') as string
   const payee          = (formData.get('payee') as string).trim()
@@ -150,7 +150,7 @@ export async function updateExpense(
   const file           = formData.get('attachment') as File | null
 
   if (!payee || !invoice_number || !description || isNaN(amount) || amount <= 0) {
-    return { error: '请填写所有必填字段' }
+    return { error: 'errors.fillRequired' }
   }
 
   const db = adminClient()
@@ -160,7 +160,7 @@ export async function updateExpense(
     .select('project_id, status, attachment_url')
     .eq('id', expense_id)
     .single<{ project_id: string; status: string; attachment_url: string }>()
-  if (!existing) return { error: '支出记录不存在' }
+  if (!existing) return { error: 'errors.expenseNotFound' }
 
   let attachment_url = existing.attachment_url
 
@@ -176,7 +176,7 @@ export async function updateExpense(
         contentType: file.type || 'application/octet-stream',
         upsert: false,
       })
-    if (uploadError) return { error: `文件上传失败：${uploadError.message}` }
+    if (uploadError) return { error: 'errors.uploadFailed' }
     attachment_url = db.storage.from('invoices').getPublicUrl(uploadData.path).data.publicUrl
   }
 
@@ -210,11 +210,11 @@ export async function deleteExpense(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await supabase
     .from('profiles').select('role').eq('id', user.id).single<{ role: string }>()
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const expense_id = formData.get('expense_id') as string
   const db = adminClient()
@@ -222,7 +222,7 @@ export async function deleteExpense(
   const { data: existing } = await db
     .from('expenses').select('project_id').eq('id', expense_id)
     .single<{ project_id: string }>()
-  if (!existing) return { error: '支出记录不存在' }
+  if (!existing) return { error: 'errors.expenseNotFound' }
 
   const { error } = await db.from('expenses').delete().eq('id', expense_id)
   if (error) return { error: error.message }
@@ -238,7 +238,7 @@ export async function confirmPayment(
 ): Promise<ActionState> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { error: '未登录' }
+  if (!user) return { error: 'errors.notLoggedIn' }
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -246,12 +246,12 @@ export async function confirmPayment(
     .eq('id', user.id)
     .single<{ role: string }>()
 
-  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: '无权限' }
+  if (!['Controller', 'Admin', 'Super Admin'].includes(profile?.role ?? '')) return { error: 'errors.noPermission' }
 
   const expense_id = formData.get('expense_id') as string
   const payment_date = (formData.get('payment_date') as string) || null
 
-  if (!payment_date) return { error: '请选择付款日期' }
+  if (!payment_date) return { error: 'errors.selectPaymentDate' }
 
   const db = adminClient()
 
@@ -261,8 +261,8 @@ export async function confirmPayment(
     .eq('id', expense_id)
     .single<{ project_id: string; status: string }>()
 
-  if (!expense) return { error: '支出记录不存在' }
-  if (expense.status !== 'Approved') return { error: '只有已批准的支出才能确认付款' }
+  if (!expense) return { error: 'errors.expenseNotFound' }
+  if (expense.status !== 'Approved') return { error: 'errors.onlyApprovedCanPay' }
 
   const { error } = await db
     .from('expenses')

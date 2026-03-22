@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react'
 import { logout } from '@/app/actions/auth'
 import NewProjectDialog from '@/components/new-project-dialog'
 import NotificationBell from '@/components/notification-bell'
+import LocaleToggle from '@/components/locale-toggle'
+import { useTranslation } from '@/i18n/context'
 import type { NotificationItem } from '@/app/actions/notifications'
 import {
   LayoutDashboard,
@@ -69,6 +71,7 @@ export default function SidebarNav({
   notifList,
 }: SidebarNavProps) {
   const pathname = usePathname()
+  const { t } = useTranslation()
   const [mobileOpen, setMobileOpen] = useState(false)
 
   // Close mobile menu on route change
@@ -90,18 +93,18 @@ export default function SidebarNav({
   }
 
   const mainNav: NavItem[] = [
-    ...(hasDashboard ? [{ href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard }] : []),
-    { href: '/projects', label: '项目管理', icon: FolderOpen },
-    { href: '/expenses', label: '支出管理', icon: CreditCard, comingSoon: true },
-    { href: '/payments', label: '付款管理', icon: Mail, comingSoon: true },
-    { href: '/reimbursements', label: '报销管理', icon: Receipt, comingSoon: true },
-    ...(hasReports ? [{ href: '/reports', label: '报表中心', icon: BarChart2 }] : []),
+    ...(hasDashboard ? [{ href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard }] : []),
+    { href: '/projects', label: t('sidebar.projects'), icon: FolderOpen },
+    { href: '/expenses', label: t('sidebar.expenses'), icon: CreditCard, comingSoon: true },
+    { href: '/payments', label: t('sidebar.payments'), icon: Mail },
+    { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt, comingSoon: true },
+    ...(hasReports ? [{ href: '/reports', label: t('sidebar.reports'), icon: BarChart2 }] : []),
   ]
 
   const adminNav: NavItem[] = [
-    ...(hasUserAdmin ? [{ href: '/admin/users', label: '用户管理', icon: Users }] : []),
-    ...(hasAdminMenu ? [{ href: '/admin/brands', label: '品牌管理', icon: Tag }] : []),
-    ...(hasSettings ? [{ href: '/admin/settings', label: '审批设置', icon: Settings }] : []),
+    ...(hasUserAdmin ? [{ href: '/admin/users', label: t('sidebar.users'), icon: Users }] : []),
+    ...(hasAdminMenu ? [{ href: '/admin/brands', label: t('sidebar.brands'), icon: Tag }] : []),
+    ...(hasSettings ? [{ href: '/admin/settings', label: t('sidebar.settings'), icon: Settings }] : []),
   ]
 
   const initials = userName
@@ -160,7 +163,7 @@ export default function SidebarNav({
                 <Icon size={16} className="shrink-0" />
                 <span>{item.label}</span>
                 <span className="ml-auto text-[9px] font-medium tracking-wider uppercase text-white/20 bg-white/5 px-1.5 py-0.5 rounded">
-                  Soon
+                  {t('common.soon')}
                 </span>
               </div>
             )
@@ -194,7 +197,7 @@ export default function SidebarNav({
           <>
             <div className="pt-4 pb-1.5 px-3">
               <span className="text-[10px] font-semibold tracking-widest uppercase text-white/25">
-                管理
+                {t('sidebar.admin')}
               </span>
             </div>
             {adminNav.map((item) => {
@@ -242,15 +245,18 @@ export default function SidebarNav({
             )}
           </div>
         </Link>
-        <form action={logout} className="w-full">
-          <button
-            type="submit"
-            className="w-full flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-          >
-            <LogOut size={15} className="shrink-0" />
-            退出登录
-          </button>
-        </form>
+        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+          <form action={logout}>
+            <button
+              type="submit"
+              className="flex items-center gap-2 rounded-lg text-sm text-white/40 hover:text-red-400 hover:bg-red-500/10 transition-colors px-1 py-1"
+            >
+              <LogOut size={15} className="shrink-0" />
+              {t('common.logout')}
+            </button>
+          </form>
+          <LocaleToggle />
+        </div>
       </div>
     </div>
   )
@@ -261,7 +267,7 @@ export default function SidebarNav({
       <button
         onClick={() => setMobileOpen(v => !v)}
         className="lg:hidden fixed top-4 left-4 z-50 w-9 h-9 flex items-center justify-center rounded-lg bg-[#1e293b] text-white/70 hover:text-white shadow-lg transition-colors"
-        aria-label="导航菜单"
+        aria-label={t('common.navMenu')}
       >
         {mobileOpen ? <X size={18} /> : <Menu size={18} />}
       </button>
