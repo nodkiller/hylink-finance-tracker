@@ -45,6 +45,7 @@ export default async function PaymentsPage({
     groups = await getPaymentCalendar(filters)
   } catch (e) {
     error = (e as Error).message
+    console.error('[payments] getPaymentCalendar error:', e)
     groups = []
   }
 

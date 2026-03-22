@@ -86,7 +86,7 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
       id, payee, description, invoice_number, amount, status,
       payment_date, payment_due_date, created_at, project_id,
       last_email_sent_at, email_sent_count,
-      projects!inner(name, brand_id, brands(name)),
+      projects(name, brand_id, brands(name)),
       profiles:approver_id(full_name)
     `)
     .not('payment_due_date', 'is', null)
