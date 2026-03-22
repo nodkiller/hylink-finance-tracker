@@ -85,9 +85,8 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
     .select(`
       id, payee, description, invoice_number, amount, status,
       payment_date, payment_due_date, created_at, project_id,
-      last_email_sent_at, email_sent_count,
-      projects(name, brand_id, brands(name)),
-      profiles:approver_id(full_name)
+      last_email_sent_at, email_sent_count, approver_id,
+      projects(name, brand_id, brands(name))
     `)
     .not('payment_due_date', 'is', null)
     .order('payment_due_date', { ascending: true })
@@ -149,8 +148,6 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const project = row.projects as any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const approver = row.profiles as any
 
     group.expenses.push({
       id: row.id,
@@ -165,7 +162,6 @@ export async function getPaymentCalendar(filters: PaymentCalendarFilters = {}) {
       project_id: row.project_id,
       project_name: project?.name,
       brand_name: project?.brands?.name,
-      approver_name: approver?.full_name,
       last_email_sent_at: row.last_email_sent_at,
       email_sent_count: row.email_sent_count ?? 0,
     })
