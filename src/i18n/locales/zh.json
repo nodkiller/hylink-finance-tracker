@@ -495,7 +495,21 @@
     "projectCount": "共 {count} 个项目",
     "generatedAt": "生成时间：{time}",
     "overdueDays": "逾期天数",
-    "agingBucket": "账期区间"
+    "agingBucket": "账期区间",
+    "paymentAgingReport": "付款账龄",
+    "paymentAgingCurrent": "未到期",
+    "paymentAgingBucket130": "1–30天",
+    "paymentAgingBucket3160": "31–60天",
+    "paymentAgingBucket6190": "61–90天",
+    "paymentAgingBucket90plus": "90+天",
+    "paymentAgingNoDueDate": "无到期日",
+    "outstandingRecords": "共 {count} 条待付款记录，合计",
+    "noOutstandingRecords": "暂无待付款记录",
+    "daysOutstanding": "逾期天数",
+    "schedule": {
+      "invalidEmail": "一个或多个邮箱地址格式无效",
+      "maxSchedules": "最多允许5个活跃的定时任务"
+    }
   },
   "profile": {
     "title": "个人资料",

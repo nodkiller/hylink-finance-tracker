@@ -29,20 +29,24 @@ export async function createExpense(
   const description = (formData.get('description') as string).trim()
   const amount      = parseFloat(formData.get('amount') as string)
   const payment_date = (formData.get('payment_date') as string) || null
-  const file        = formData.get('attachment') as File | null
+
+  // Support both single 'attachment' and multiple 'attachments' field names
+  const files = formData.getAll('attachments') as File[]
+  const singleFile = formData.get('attachment') as File | null
+  const allFiles = files.filter(f => f && f.size > 0)
+  if (allFiles.length === 0 && singleFile && singleFile.size > 0) {
+    allFiles.push(singleFile)
+  }
 
   // Validate required fields
   if (!payee || !invoice_number || !description || isNaN(amount) || amount <= 0) {
     return { error: 'errors.fillRequired' }
   }
-  if (!file || file.size === 0) {
+  if (allFiles.length === 0) {
     return { error: 'errors.uploadAttachment' }
   }
 
   const db = adminClient()
-
-  // Upload file to Supabase Storage
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
 
   // Get project code for the filename prefix
   const { data: proj } = await db
@@ -52,22 +56,34 @@ export async function createExpense(
     .single<{ project_code: string | null }>()
 
   const prefix = proj?.project_code ?? project_id
-  const uuid = crypto.randomUUID()
-  const storagePath = `${prefix}_${uuid}.${ext}`
 
-  const fileBuffer = await file.arrayBuffer()
-  const { data: uploadData, error: uploadError } = await db.storage
-    .from('invoices')
-    .upload(storagePath, fileBuffer, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: false,
-    })
+  // Upload all files to Supabase Storage
+  const uploadedUrls: string[] = []
+  for (const file of allFiles) {
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'bin'
+    const uuid = crypto.randomUUID()
+    const storagePath = `${prefix}_${uuid}.${ext}`
 
-  if (uploadError) return { error: 'errors.uploadFailed' }
+    const fileBuffer = await file.arrayBuffer()
+    const { data: uploadData, error: uploadError } = await db.storage
+      .from('invoices')
+      .upload(storagePath, fileBuffer, {
+        contentType: file.type || 'application/octet-stream',
+        upsert: false,
+      })
 
-  const { data: { publicUrl } } = db.storage
-    .from('invoices')
-    .getPublicUrl(uploadData.path)
+    if (!uploadError && uploadData) {
+      const { data: { publicUrl } } = db.storage
+        .from('invoices')
+        .getPublicUrl(uploadData.path)
+      uploadedUrls.push(publicUrl)
+    }
+  }
+
+  if (uploadedUrls.length === 0) return { error: 'errors.uploadFailed' }
+
+  // Store all URLs comma-separated in attachment_url
+  const publicUrl = uploadedUrls.join(',')
 
   // Fetch approval thresholds from settings
   const { data: settings } = await db

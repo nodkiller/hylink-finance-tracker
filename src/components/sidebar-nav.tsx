@@ -92,16 +92,20 @@ export default function SidebarNav({
     return pathname === href || pathname.startsWith(href + '/')
   }
 
-  const mainNav: NavItem[] = [
-    ...(hasDashboard ? [{ href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard }] : []),
-    { href: '/projects', label: t('sidebar.projects'), icon: FolderOpen },
-    { href: '/expenses', label: t('sidebar.expenses'), icon: CreditCard, comingSoon: true },
-    { href: '/payments', label: t('sidebar.payments'), icon: Mail },
-    { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt },
-    ...(hasReports ? [{ href: '/reports', label: t('sidebar.reports'), icon: BarChart2 }] : []),
-  ]
+  const isStaff = userRole === 'Staff'
 
-  const adminNav: NavItem[] = [
+  const mainNav: NavItem[] = isStaff
+    ? [{ href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt }]
+    : [
+        ...(hasDashboard ? [{ href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard }] : []),
+        { href: '/projects', label: t('sidebar.projects'), icon: FolderOpen },
+        { href: '/expenses', label: t('sidebar.expenses'), icon: CreditCard, comingSoon: true },
+        { href: '/payments', label: t('sidebar.payments'), icon: Mail },
+        { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt },
+        ...(hasReports ? [{ href: '/reports', label: t('sidebar.reports'), icon: BarChart2 }] : []),
+      ]
+
+  const adminNav: NavItem[] = isStaff ? [] : [
     ...(hasUserAdmin ? [{ href: '/admin/users', label: t('sidebar.users'), icon: Users }] : []),
     ...(hasAdminMenu ? [{ href: '/admin/brands', label: t('sidebar.brands'), icon: Tag }] : []),
     ...(hasSettings ? [{ href: '/admin/settings', label: t('sidebar.settings'), icon: Settings }] : []),
@@ -115,7 +119,7 @@ export default function SidebarNav({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/[0.06]">
-        <Link href="/dashboard" className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
+        <Link href={isStaff ? '/reimbursements' : '/dashboard'} className="flex items-center gap-2.5 group" onClick={() => setMobileOpen(false)}>
           <svg width="24" height="20" viewBox="0 0 24 20" fill="none" xmlns="http://www.w3.org/2000/svg"
             className="transition-transform duration-300 group-hover:scale-105 shrink-0">
             <rect x="0" y="12" width="6" height="8" rx="2" fill="white" opacity="0.35" />

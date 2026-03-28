@@ -40,6 +40,9 @@ export async function proxy(request: NextRequest) {
         .eq('id', user.id)
         .single<{ role: string }>()
       const role = profile?.role
+      if (role === 'Staff') {
+        return NextResponse.redirect(new URL('/reimbursements', request.url))
+      }
       if (DASHBOARD_ROLES.includes(role ?? '')) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
@@ -63,7 +66,8 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/reports') ||
     pathname.startsWith('/payments') ||
-    pathname.startsWith('/admin')
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/projects')
 
   if (needsRoleCheck) {
     const { data: profile, error: profileError } = await supabase
@@ -76,6 +80,11 @@ export async function proxy(request: NextRequest) {
     // let the page component do its own role check with the service-role client.
     if (!profileError) {
       const role = profile?.role ?? 'Staff'
+
+      // Staff can ONLY access /reimbursements — redirect everything else
+      if (role === 'Staff' && !pathname.startsWith('/reimbursements')) {
+        return NextResponse.redirect(new URL('/reimbursements', request.url))
+      }
 
       if (pathname.startsWith('/admin/users') && !SUPER_ADMIN_ROLES.includes(role)) {
         return NextResponse.redirect(new URL('/projects', request.url))

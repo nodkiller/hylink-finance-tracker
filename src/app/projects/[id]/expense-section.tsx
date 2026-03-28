@@ -31,6 +31,7 @@ export interface ExpenseRecord {
   approver_name: string | null
   rejection_reason: string | null
   payment_date: string | null
+  created_by: string | null
 }
 
 interface Props {
@@ -39,6 +40,7 @@ interface Props {
   canSubmit: boolean
   canConfirmPayment: boolean
   canApprove?: boolean
+  currentUserId?: string
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -227,7 +229,7 @@ function ConfirmPaymentButton({ expense }: { expense: ExpenseRecord }) {
   )
 }
 
-export default function ExpenseSection({ projectId, expenses, canSubmit, canConfirmPayment, canApprove }: Props) {
+export default function ExpenseSection({ projectId, expenses, canSubmit, canConfirmPayment, canApprove, currentUserId }: Props) {
   const router = useRouter()
   const { t, locale } = useTranslation()
   const [open, setOpen] = useState(false)
@@ -269,9 +271,12 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
     const formData = new FormData(form)
     formData.set('project_id', projectId)
 
-    const file = fileRef.current?.files?.[0]
-    if (!file) { setError(t('errors.uploadAttachment')); return }
-    formData.set('attachment', file)
+    const files = fileRef.current?.files
+    if (!files || files.length === 0) { setError(t('errors.uploadAttachment')); return }
+    // Send all selected files as 'attachments' entries
+    for (let i = 0; i < files.length; i++) {
+      formData.append('attachments', files[i])
+    }
 
     startTransition(async () => {
       const result = await createExpense(undefined, formData)
@@ -440,7 +445,7 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
                     {canApprove && (e.status === 'Pending Approval' || e.status === 'Pending Super Approval') && (
                       <ExpenseApprovalActions expense={e} />
                     )}
-                    {canSubmit && (
+                    {(canSubmit || (currentUserId && e.created_by === currentUserId && e.status === 'Pending Approval')) && (
                       <EditExpenseDialog expense={{
                         id: e.id,
                         payee: e.payee,
@@ -452,14 +457,30 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
                         payment_date: e.payment_date,
                       }} />
                     )}
-                    <a
-                      href={e.attachment_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
-                    >
-                      {t('common.viewAttachment')}
-                    </a>
+                    {e.attachment_url.includes(',') ? (
+                      <div className="flex flex-col gap-0.5">
+                        {e.attachment_url.split(',').map((url, idx) => (
+                          <a
+                            key={idx}
+                            href={url.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {t('common.viewAttachment')} {idx + 1}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <a
+                        href={e.attachment_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {t('common.viewAttachment')}
+                      </a>
+                    )}
                     {canConfirmPayment && e.status === 'Approved' && (
                       <ConfirmPaymentButton expense={e} />
                     )}
@@ -548,6 +569,7 @@ export default function ExpenseSection({ projectId, expenses, canSubmit, canConf
                 ref={fileRef}
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
+                multiple
                 required
                 className="cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
               />

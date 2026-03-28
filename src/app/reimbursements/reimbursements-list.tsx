@@ -54,12 +54,13 @@ interface Props {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  draft:      'bg-gray-100 text-gray-500 border-gray-200',
-  pending:    'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
-  needs_info: 'bg-purple-50 text-purple-700 border-purple-200',
-  approved:   'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
-  paid:       'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
-  rejected:   'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
+  draft:                'bg-gray-100 text-gray-500 border-gray-200',
+  pending:              'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
+  needs_info:           'bg-purple-50 text-purple-700 border-purple-200',
+  controller_approved:  'bg-[#2563eb]/10 text-[#2563eb] border-[#2563eb]/25',
+  approved:             'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
+  paid:                 'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
+  rejected:             'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
 }
 
 const CATEGORY_KEYS: Record<string, string> = {
@@ -86,6 +87,7 @@ export default function ReimbursementsList({
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [monthFilter, setMonthFilter] = useState('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
@@ -94,6 +96,7 @@ export default function ReimbursementsList({
       case 'draft': return t('reimbursement.draft')
       case 'pending': return t('reimbursement.pending')
       case 'needs_info': return t('reimbursement.needsInfo')
+      case 'controller_approved': return locale === 'zh' ? '已审核待终审' : 'Controller Approved'
       case 'approved': return t('reimbursement.approvedAwaitingPayment')
       case 'paid': return t('reimbursement.reimbursed')
       case 'rejected': return t('reimbursement.rejected')
@@ -111,7 +114,7 @@ export default function ReimbursementsList({
   // Filter by tab
   const tabFiltered = reimbursements.filter(r => {
     switch (activeTab) {
-      case 'pending': return r.status === 'pending' || r.status === 'needs_info' || r.status === 'draft'
+      case 'pending': return r.status === 'pending' || r.status === 'needs_info' || r.status === 'draft' || r.status === 'controller_approved'
       case 'approved': return r.status === 'approved'
       case 'paid': return r.status === 'paid'
       case 'rejected': return r.status === 'rejected'
@@ -119,11 +122,22 @@ export default function ReimbursementsList({
     }
   })
 
-  // Filter by category
+  // Filter by category and month
   const filtered = tabFiltered.filter(r => {
     if (categoryFilter !== 'all' && r.category !== categoryFilter) return false
+    if (monthFilter !== 'all') {
+      const expMonth = r.expense_date?.slice(0, 7)
+      if (expMonth !== monthFilter) return false
+    }
     return true
   })
+
+  // Get unique months from reimbursements for filter dropdown
+  const availableMonths = [...new Set(
+    reimbursements
+      .map(r => r.expense_date?.slice(0, 7))
+      .filter((m): m is string => !!m)
+  )].sort().reverse()
 
   // Tab counts
   const counts = {
@@ -179,6 +193,19 @@ export default function ReimbursementsList({
               <SelectItem value="all">{t('common.all')}</SelectItem>
               {Object.entries(CATEGORY_KEYS).map(([val, key]) => (
                 <SelectItem key={val} value={val}>{t(key)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Month filter */}
+          <Select value={monthFilter} onValueChange={v => v && setMonthFilter(v)}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder={locale === 'zh' ? '选择月份' : 'Month'} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{locale === 'zh' ? '所有月份' : 'All Months'}</SelectItem>
+              {availableMonths.map(m => (
+                <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>

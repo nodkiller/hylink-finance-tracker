@@ -69,17 +69,19 @@ interface Props {
   isApprover: boolean
   isOwner: boolean
   locale: string
+  userRole?: string
 }
 
 type ActionState = { error: string } | { success: boolean } | undefined
 
 const STATUS_STYLES: Record<string, string> = {
-  draft:      'bg-gray-100 text-gray-500 border-gray-200',
-  pending:    'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
-  needs_info: 'bg-purple-50 text-purple-700 border-purple-200',
-  approved:   'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
-  paid:       'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
-  rejected:   'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
+  draft:                'bg-gray-100 text-gray-500 border-gray-200',
+  pending:              'bg-[#DD6B20]/10 text-[#DD6B20] border-[#DD6B20]/25',
+  needs_info:           'bg-purple-50 text-purple-700 border-purple-200',
+  controller_approved:  'bg-[#2563eb]/10 text-[#2563eb] border-[#2563eb]/25',
+  approved:             'bg-[#2B6CB0]/10 text-[#2B6CB0] border-[#2B6CB0]/25',
+  paid:                 'bg-[#38A169]/10 text-[#38A169] border-[#38A169]/25',
+  rejected:             'bg-[#E53E3E]/10 text-[#E53E3E] border-[#E53E3E]/25',
 }
 
 const CATEGORY_KEYS: Record<string, string> = {
@@ -103,7 +105,8 @@ function isImageUrl(url: string) {
   return /\.(jpg|jpeg|png|gif|webp)/i.test(url)
 }
 
-export default function ReimbursementDetail({ reimbursement: r, isApprover, isOwner, locale }: Props) {
+export default function ReimbursementDetail({ reimbursement: r, isApprover, isOwner, locale, userRole }: Props) {
+  const isSuperAdmin = userRole === 'Super Admin'
   const { t } = useTranslation()
   const router = useRouter()
   const { toast } = useToast()
@@ -239,6 +242,16 @@ export default function ReimbursementDetail({ reimbursement: r, isApprover, isOw
     })
   }
 
+  if (r.approved_at && r.status === 'controller_approved') {
+    timeline.push({
+      date: r.approved_at,
+      icon: <CheckCircle className="w-4 h-4" />,
+      label: 'Reviewed by Controller',
+      detail: r.approver_name ? `by ${r.approver_name}${r.approval_comment ? ` - ${r.approval_comment}` : ''} — awaiting Super Admin approval` : 'Awaiting Super Admin approval',
+      color: 'text-[#2563eb]',
+    })
+  }
+
   if (r.approved_at && (r.status === 'approved' || r.status === 'paid')) {
     timeline.push({
       date: r.approved_at,
@@ -361,8 +374,11 @@ export default function ReimbursementDetail({ reimbursement: r, isApprover, isOw
             </div>
           )}
 
-          {/* Approval Actions */}
-          {isApprover && (r.status === 'pending' || r.status === 'needs_info') && (
+          {/* Approval Actions — Controller: pending/needs_info → controller_approved; Super Admin: pending/needs_info/controller_approved → approved */}
+          {isApprover && (
+            r.status === 'pending' || r.status === 'needs_info' ||
+            (isSuperAdmin && r.status === 'controller_approved')
+          ) && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-3">Approval Actions</h3>
 
@@ -412,8 +428,8 @@ export default function ReimbursementDetail({ reimbursement: r, isApprover, isOw
             </div>
           )}
 
-          {/* Mark as Paid - only for approved */}
-          {isApprover && r.status === 'approved' && (
+          {/* Mark as Paid — Super Admin only, after final approval */}
+          {isSuperAdmin && r.status === 'approved' && (
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
               <Button
                 onClick={() => setPaidDialogOpen(true)}

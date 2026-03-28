@@ -36,7 +36,7 @@ export async function exportToPDF(
 
   // Title
   doc.setFontSize(14)
-  doc.setTextColor(42, 74, 107) // #2B6CB0
+  doc.setTextColor(30, 64, 175) // #1e40af per DESIGN.md
   doc.text(title, 14, 16)
   doc.setFontSize(9)
   doc.setTextColor(120, 120, 120)
@@ -47,7 +47,7 @@ export async function exportToPDF(
     head: [headers],
     body: rows.map(r => r.map(v => v ?? '—')),
     styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: [42, 74, 107], textColor: 255, fontStyle: 'bold' },
+    headStyles: { fillColor: [30, 64, 175], textColor: 255, fontStyle: 'bold' },
     alternateRowStyles: { fillColor: [249, 249, 249] },
     margin: { left: 14, right: 14 },
   })

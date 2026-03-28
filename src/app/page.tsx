@@ -11,9 +11,13 @@ export default async function Home() {
     .from('profiles')
     .select('role')
     .eq('id', user.id)
-    .single<{ role: 'Staff' | 'Controller' }>()
+    .single<{ role: string }>()
 
-  if (profile?.role === 'Controller') {
+  const role = profile?.role ?? 'Staff'
+
+  if (role === 'Staff') {
+    redirect('/reimbursements')
+  } else if (['Controller', 'Admin', 'Super Admin'].includes(role)) {
     redirect('/dashboard')
   } else {
     redirect('/projects')

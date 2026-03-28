@@ -53,6 +53,7 @@ interface ExpenseRow {
   approver_id: string | null
   rejection_reason: string | null
   payment_date: string | null
+  created_by: string | null
   created_at: string
 }
 
@@ -365,6 +366,7 @@ export default async function ProjectDetailPage({ params }: Props) {
           canSubmit={canSubmit}
           canConfirmPayment={canConfirmPayment}
           canApprove={canApprove}
+          currentUserId={user?.id ?? ''}
           expenses={allExpenses.map(e => ({
             id: e.id,
             payee: e.payee,
@@ -376,6 +378,7 @@ export default async function ProjectDetailPage({ params }: Props) {
             approver_name: e.approver_id ? approverMap.get(e.approver_id) ?? null : null,
             rejection_reason: e.rejection_reason ?? null,
             payment_date: e.payment_date,
+            created_by: e.created_by ?? null,
           }))}
         />
 

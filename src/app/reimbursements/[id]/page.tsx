@@ -128,6 +128,7 @@ export default async function ReimbursementDetailPage({ params }: Props) {
         isApprover={isApprover}
         isOwner={reimbursement.submitted_by === user.id}
         locale={locale}
+        userRole={userRole}
       />
     </main>
   )

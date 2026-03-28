@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getServerT } from '@/i18n/use-server-t'
 
-import ReportsClient, { type RawRevenue, type RawExpense, type RawProject, type RawBrand } from './reports-client'
+import ReportsClient from './reports-client'
+import type { RawRevenue, RawExpense, RawProject, RawBrand } from './report-helpers'
+import { getSchedules } from '@/app/actions/reports'
 
 const DASHBOARD_ROLES = ['Controller', 'Admin', 'Super Admin']
 
@@ -32,7 +34,7 @@ export default async function ReportsPage() {
     db.from('revenues')
       .select('id, amount, status, issue_date, invoice_number, description, project_id, projects(name, project_code, brands(name))'),
     db.from('expenses')
-      .select('id, amount, status, created_at, project_id, projects(brands(name))'),
+      .select('id, amount, status, created_at, project_id, payee, payment_due_date, projects(brands(name))'),
     db.from('projects')
       .select('id, name, project_code, status, estimated_revenue, brands(name)')
       .order('created_at', { ascending: false }),
@@ -59,6 +61,8 @@ export default async function ReportsPage() {
     created_at: e.created_at,
     project_id: e.project_id,
     brand_name: e.projects?.brands?.name ?? '—',
+    payment_due_date: e.payment_due_date ?? null,
+    payee: e.payee ?? undefined,
   }))
 
   const projects: RawProject[] = (rawProjects ?? []).map((p: any) => ({
@@ -72,6 +76,9 @@ export default async function ReportsPage() {
 
   const brands: RawBrand[] = (rawBrands ?? []).map((b: any) => ({ id: b.id, name: b.name }))
 
+  const userRole = profile?.role ?? ''
+  const schedules = await getSchedules()
+
   return (
     <main className="max-w-7xl mx-auto px-6 py-8 space-y-5">
         <div className="flex items-baseline justify-between">
@@ -83,6 +90,8 @@ export default async function ReportsPage() {
           expenses={expenses}
           projects={projects}
           brands={brands}
+          schedules={schedules}
+          userRole={userRole}
         />
     </main>
   )

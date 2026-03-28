@@ -495,7 +495,21 @@
     "projectCount": "{count} projects",
     "generatedAt": "Generated at: {time}",
     "overdueDays": "Overdue Days",
-    "agingBucket": "Aging Bucket"
+    "agingBucket": "Aging Bucket",
+    "paymentAgingReport": "Payment Aging",
+    "paymentAgingCurrent": "Current",
+    "paymentAgingBucket130": "1-30 days",
+    "paymentAgingBucket3160": "31-60 days",
+    "paymentAgingBucket6190": "61-90 days",
+    "paymentAgingBucket90plus": "90+ days",
+    "paymentAgingNoDueDate": "No Due Date",
+    "outstandingRecords": "{count} outstanding payment records, total",
+    "noOutstandingRecords": "No outstanding payment records",
+    "daysOutstanding": "Days Outstanding",
+    "schedule": {
+      "invalidEmail": "One or more email addresses are invalid",
+      "maxSchedules": "Maximum 5 active schedules allowed"
+    }
   },
   "profile": {
     "title": "Profile",

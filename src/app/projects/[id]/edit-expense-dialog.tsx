@@ -148,6 +148,7 @@ export default function EditExpenseDialog({ expense }: Props) {
                   ref={fileRef}
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
+                  multiple
                   className="cursor-pointer file:mr-3 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200"
                 />
                 <a

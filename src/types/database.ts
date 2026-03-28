@@ -2,7 +2,7 @@ export type ProjectType = 'Retainer' | 'KOL' | 'Ad-hoc'
 export type ProjectStatus = 'Pending Approval' | 'Active' | 'Completed' | 'Reconciled' | 'Rejected'
 export type RevenueStatus = 'Paid' | 'Unpaid' | 'Overdue'
 export type ExpenseStatus = 'Pending Approval' | 'Approved' | 'Rejected' | 'Paid'
-export type UserRole = 'Staff' | 'Controller'
+export type UserRole = 'Staff' | 'Controller' | 'Admin' | 'Super Admin'
 
 export interface Database {
   public: {

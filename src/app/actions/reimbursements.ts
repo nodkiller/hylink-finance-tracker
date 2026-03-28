@@ -31,6 +31,21 @@ async function assertApprover() {
   return null
 }
 
+async function assertSuperAdmin() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+  const { data: profile } = await adminClient()
+    .from('profiles')
+    .select('role, full_name')
+    .eq('id', user.id)
+    .single<{ role: string; full_name: string | null }>()
+  if (profile?.role === 'Super Admin') {
+    return { user, role: profile.role, full_name: profile?.full_name }
+  }
+  return null
+}
+
 export async function createReimbursement(
   _prev: ActionState,
   formData: FormData
@@ -299,12 +314,23 @@ export async function approveReimbursement(
     .single<{ id: string; status: string; submitted_by: string; title: string; amount: number; reimbursement_no: string }>()
 
   if (!existing) return { error: 'errors.recordNotFound' }
-  if (!['pending', 'needs_info'].includes(existing.status)) return { error: 'errors.expenseNotPending' }
+
+  // Two-level approval:
+  // Controller/Admin on 'pending'/'needs_info' → 'controller_approved'
+  // Super Admin on 'pending'/'needs_info'/'controller_approved' → 'approved'
+  const isSuperAdmin = approver.role === 'Super Admin'
+  const validStatuses = isSuperAdmin
+    ? ['pending', 'needs_info', 'controller_approved']
+    : ['pending', 'needs_info']
+
+  if (!validStatuses.includes(existing.status)) return { error: 'errors.expenseNotPending' }
+
+  const newStatus = isSuperAdmin ? 'approved' : 'controller_approved'
 
   const { error } = await db
     .from('reimbursements')
     .update({
-      status: 'approved',
+      status: newStatus,
       approved_by: approver.user.id,
       approved_at: new Date().toISOString(),
       approval_comment: comment,
@@ -314,14 +340,28 @@ export async function approveReimbursement(
 
   if (error) return { error: error.message }
 
-  // Notify submitter
-  await notify([{
-    user_id: existing.submitted_by,
-    type: 'reimbursement_approved',
-    title: `Reimbursement approved: ${existing.title}`,
-    body: `A$${Number(existing.amount).toLocaleString()} - ${existing.reimbursement_no}`,
-    link: `/reimbursements/${existing.id}`,
-  }])
+  if (isSuperAdmin) {
+    // Notify submitter that it's fully approved
+    await notify([{
+      user_id: existing.submitted_by,
+      type: 'reimbursement_approved',
+      title: `Reimbursement approved: ${existing.title}`,
+      body: `A$${Number(existing.amount).toLocaleString()} - ${existing.reimbursement_no}`,
+      link: `/reimbursements/${existing.id}`,
+    }])
+  } else {
+    // Controller approved → notify Super Admin for final review
+    await notifyRoles(
+      ['Super Admin'],
+      approver.user.id,
+      {
+        type: 'reimbursement_controller_approved',
+        title: `Reimbursement awaiting final approval: ${existing.title}`,
+        body: `A$${Number(existing.amount).toLocaleString()} - ${existing.reimbursement_no} (reviewed by ${approver.full_name || 'Controller'})`,
+        link: `/reimbursements/${existing.id}`,
+      }
+    )
+  }
 
   revalidatePath('/reimbursements')
   revalidatePath(`/reimbursements/${reimbursement_id}`)
@@ -348,7 +388,7 @@ export async function rejectReimbursement(
     .single<{ id: string; status: string; submitted_by: string; title: string; amount: number; reimbursement_no: string }>()
 
   if (!existing) return { error: 'errors.recordNotFound' }
-  if (!['pending', 'needs_info'].includes(existing.status)) return { error: 'errors.expenseNotPending' }
+  if (!['pending', 'needs_info', 'controller_approved'].includes(existing.status)) return { error: 'errors.expenseNotPending' }
 
   const { error } = await db
     .from('reimbursements')
@@ -426,7 +466,7 @@ export async function markReimbursementPaid(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const approver = await assertApprover()
+  const approver = await assertSuperAdmin()
   if (!approver) return { error: 'errors.noPermission' }
 
   const reimbursement_id = formData.get('reimbursement_id') as string
