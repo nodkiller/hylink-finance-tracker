@@ -56,6 +56,11 @@ export async function proxy(request: NextRequest) {
     return supabaseResponse
   }
 
+  // Magic link accounting view — public, no auth required
+  if (pathname.startsWith('/accounting/view/')) {
+    return supabaseResponse
+  }
+
   // Not logged in → /login
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))

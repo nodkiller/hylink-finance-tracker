@@ -15,6 +15,7 @@ import {
   CreditCard,
   Mail,
   Receipt,
+  FileArchive,
   BarChart2,
   Users,
   Tag,
@@ -95,13 +96,17 @@ export default function SidebarNav({
   const isStaff = userRole === 'Staff'
 
   const mainNav: NavItem[] = isStaff
-    ? [{ href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt }]
+    ? [
+        { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt },
+        { href: '/accounting', label: t('sidebar.accounting'), icon: FileArchive },
+      ]
     : [
         ...(hasDashboard ? [{ href: '/dashboard', label: t('sidebar.dashboard'), icon: LayoutDashboard }] : []),
         { href: '/projects', label: t('sidebar.projects'), icon: FolderOpen },
         { href: '/expenses', label: t('sidebar.expenses'), icon: CreditCard, comingSoon: true },
         { href: '/payments', label: t('sidebar.payments'), icon: Mail },
         { href: '/reimbursements', label: t('sidebar.reimbursements'), icon: Receipt },
+        { href: '/accounting', label: t('sidebar.accounting'), icon: FileArchive },
         ...(hasReports ? [{ href: '/reports', label: t('sidebar.reports'), icon: BarChart2 }] : []),
       ]
 
